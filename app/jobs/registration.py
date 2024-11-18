@@ -1,7 +1,7 @@
 # from app.utils.salesforce_client import SalesforceClient
 import asyncio
 from utils.salesforce_client import upsert_to_salesforce
-from training_session_and_attendance_update import process_attendance, process_training_session
+from utils.attendance_util import process_attendance, process_training_session
   
 # Process functions for each Salesforce object
 def process_training_group(data, sf_connection):
