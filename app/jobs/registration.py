@@ -20,8 +20,25 @@ def process_training_group(data, sf_connection):
 def process_household(data, sf_connection):
     survey_detail = data.get('form', {}).get('survey_detail')
     primary_member = data.get("form", {}).get("Primary_Household_Member") == "Yes"
+    country = data.get("form", {}).get("coffee_project_country")
 
     if survey_detail in ["New Farmer New Household", "New Farmer Existing Household", "Existing Farmer Change in FFG"]:
+        
+        # Split these - Burundi is the only country that needs Coffee Plots data
+        if country == 'Burundi':
+            household_fields = {
+                "Name": data.get("form", {}).get("Household_Number"),
+                "Training_Group__c": data.get("form", {}).get("Training_Group_Id"),
+                "Farm_Size__c": get_farm_size(data),
+                "Number_of_Coffee_Plots__c": get_number_of_plots(data)
+            }
+        else:
+            household_fields = {
+                "Name": data.get("form", {}).get("Household_Number"),
+                "Training_Group__c": data.get("form", {}).get("Training_Group_Id"),
+                "Farm_Size__c": get_farm_size(data),
+            }  
+        
         household_fields = {
             "Name": data.get("form", {}).get("Household_Number"),
             "Training_Group__c": data.get("form", {}).get("Training_Group_Id"),
