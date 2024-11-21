@@ -2,6 +2,7 @@
 import asyncio
 from utils.salesforce_client import upsert_to_salesforce
 from utils.attendance_util import process_attendance, process_training_session
+import logging
   
 # Process functions for each Salesforce object
 def process_training_group(data, sf_connection):
@@ -170,14 +171,49 @@ def process_participant_deactivation(data, sf_connection):
         )
 
 async def send_to_salesforce(data, sf_connection):
-    process_training_group(data, sf_connection)
-    process_household(data, sf_connection)
-    process_participant(data, sf_connection)
-    process_participant_deactivation(data, sf_connection)
-    process_training_session(data, sf_connection)
-    process_attendance(data, sf_connection)
+    request_id = data.get('id')
+    
+    logging.info("Starting Farmer Registration processing", extra={"request_id": request_id})
 
+    try:
+        logging.info("Processing training group", extra={"request_id": request_id})
+        process_training_group(data, sf_connection)
+    except Exception as e:
+        logging.error("Error processing training group", extra={"request_id": request_id, "error": str(e)})
+
+    try:
+        logging.info("Processing household", extra={"request_id": request_id})
+        process_household(data, sf_connection)
+    except Exception as e:
+        logging.error("Error processing household", extra={"request_id": request_id, "error": str(e)})
+
+    try:
+        logging.info("Processing participant", extra={"request_id": request_id})
+        process_participant(data, sf_connection)
+    except Exception as e:
+        logging.error("Error processing participant", extra={"request_id": request_id, "error": str(e)})
+
+    try:
+        logging.info("Processing participant deactivation", extra={"request_id": request_id})
+        process_participant_deactivation(data, sf_connection)
+    except Exception as e:
+        logging.error("Error processing participant deactivation", extra={"request_id": request_id, "error": str(e)})
+
+    try:
+        logging.info("Processing training session", extra={"request_id": request_id})
+        process_training_session(data, sf_connection)
+    except Exception as e:
+        logging.error("Error processing training session", extra={"request_id": request_id, "error": str(e)})
+
+    try:
+        logging.info("Processing attendance", extra={"request_id": request_id})
+        process_attendance(data, sf_connection)
+    except Exception as e:
+        logging.error("Error processing attendance", extra={"request_id": request_id, "error": str(e)})
+
+    logging.info("Farmer Registration processing completed", extra={"request_id": request_id})
     return True
+
 
 def get_farm_size(data):
     survey_detail = data.get('form', {}).get('survey_detail')

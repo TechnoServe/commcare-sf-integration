@@ -7,4 +7,5 @@ def upsert_to_salesforce(object_name, external_id_field, external_id, record_dat
     except Exception as e:
         print(e)
         print(f"Error upserting {object_name}: {e} data {record_data}")
-        return None
+        return 
+ 
