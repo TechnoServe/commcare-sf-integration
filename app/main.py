@@ -50,7 +50,6 @@ def process_data():
 
     if not job_name:
         return jsonify({"error": "Job name not provided in payload"}), 200
-
     try:
         # Save initial data to Firestore with 'new' status
         doc_id = save_to_firestore(data, job_name, "new")
