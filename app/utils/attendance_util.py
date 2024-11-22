@@ -25,7 +25,7 @@ def process_training_session(data, sf_connection):
     
 def process_attendance(data, sf_connection):
     survey_detail = data.get("form",{}).get("survey_detail")
-    
+
     # 1. Process for Farmer Registration - New Farmer
     if survey_detail in ["New Farmer New Household", "New Farmer Existing Household"]:
         attendance_fields = {
@@ -34,13 +34,13 @@ def process_attendance(data, sf_connection):
                 "CommCare_Case_Id__c": data.get("form", {}).get("training_session")
             },
             "Participant__r": {
-                "CommCare_Case_Id__c": data.get("form", {}).get("subcase_0", {}).get("case", {}).get("@caseid")
+                "CommCare_Case_Id__c": data.get("form", {}).get("subcase_0", {}).get("case", {}).get("@case_id")
             }
         }
         upsert_to_salesforce (
             "Attendance__c",
             "Submission_ID__c",
-            data.get("form", {}).get("training_session") + data.get("form", {}).get("subcase_0", {}).get("case", {}).get("@caseid"),
+            data.get("form", {}).get("training_session") + data.get("form", {}).get("subcase_0", {}).get("case", {}).get("@case_id"),
             attendance_fields,
             sf_connection
         )
