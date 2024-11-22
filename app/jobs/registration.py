@@ -132,7 +132,7 @@ def process_participant(data, sf_connection):
         upsert_to_salesforce(
             "Participant__c",
             "CommCare_Case_Id__c",
-            data.get("form", {}).get("case", {}).get("@caseid"),
+            data.get("form", {}).get("case", {}).get("@case_id"),
             participant_fields,
             sf_connection
         )
