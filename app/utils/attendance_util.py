@@ -10,7 +10,8 @@ def process_training_session(data, sf_connection):
         training_session_fields = {
             "Trainer__c" : data.get("form", {}).get("trainer"),
             "Updated_from_CommCare__c": True,
-            "Date__c": data.get("form", {}).get("registration_date")
+            "Date__c": data.get("form", {}).get("registration_date"),
+            "Training_Group__c": data.get("form").get("Training_Group_Id")
         }
         upsert_to_salesforce(
             "Training_Session__c",

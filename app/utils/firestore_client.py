@@ -1,9 +1,12 @@
-from jobs import registration
 from google.cloud import firestore
+from utils.logging_config import logger
 
-db = firestore.Client()
+def get_firestore_client():
+    return firestore.Client()
 
-def save_to_firestore(data, job_name, status):
+def save_to_firestore(data, job_name, status, db=None):
+    if db is None:
+        db = get_firestore_client()
     doc_ref = db.collection("job_statuses").add({
         "data": data,
         "job_name": job_name,
@@ -11,28 +14,34 @@ def save_to_firestore(data, job_name, status):
         "run_retries": 0,
         "last_retried_at": "",
         "response_from_sf": "",
+        "last_step": "",
         "created_at": firestore.SERVER_TIMESTAMP,
         "updated_at": firestore.SERVER_TIMESTAMP,
     })
-    return doc_ref[1].id  # Return document ID for status updates
+    return doc_ref[1].id
 
-def update_firestore_status(doc_id, status):
-    db.collection("job_statuses").document(doc_id).update({"status": status})
-
-def retry_failed_jobs():
-    # Query Firestore for all records with 'failed' status
-    failed_jobs = db.collection("job_statuses").where("status", "==", "failed").stream()
-
-    for job in failed_jobs:
-        doc_id = job.id
-        data = job.to_dict()["data"]
-        job_name = job.to_dict()["job_name"]
-
-        # Route job to correct processing function
-        if job_name == "Farmer Registration":
-            success = registration.process_registration(data)
-        # Add other job processing as needed
-
-        # Update Firestore status based on retry outcome
-        new_status = "processed" if success else "failed"
-        update_firestore_status(doc_id, new_status)
+def update_firestore_status(doc_id, status, fields=None, db=None):
+    if db is None:
+        db = get_firestore_client()
+    try:
+        update_data = {"status": status}
+        if fields:
+            update_data.update(fields)
+        
+        db.collection("job_statuses").document(doc_id).update(update_data)
+        logger.info({
+            "message": "Successfully updated Firestore document",
+            "doc_id": doc_id,
+            "status": status,
+            "fields": fields
+        })
+        return True
+    except Exception as e:
+        logger.error({
+            "message": "Failed to update Firestore document",
+            "doc_id": doc_id,
+            "status": status,
+            "fields": fields,
+            "error": str(e)
+        })
+        return False

@@ -3,6 +3,7 @@ import asyncio
 from utils.salesforce_client import upsert_to_salesforce
 from utils.attendance_util import process_attendance, process_training_session
 from utils.logging_config import logger
+import os
   
 # Process functions for each Salesforce object
 def process_training_group(data, sf_connection):
@@ -173,104 +174,100 @@ def process_participant_deactivation(data, sf_connection):
 async def send_to_salesforce(data, sf_connection):
     request_id = data.get("id")
 
-    # Start processing log
-    logger.info({
-        "message": "Starting Farmer Registration processing",
-        "request_id": request_id
-    })
-
-    # Process training group
     try:
-        logger.info({
-            "message": "Processing training group",
-            "request_id": request_id
-        })
-        process_training_group(data, sf_connection)
+        # Step 1: Process training group
+        try:
+            logger.info({
+                "message": "Processing training group",
+                "request_id": request_id,
+            })
+            process_training_group(data, sf_connection)
+        except Exception as e:
+            logger.error({
+                "request_id": request_id,
+                "error": str(e)
+            })
+            return False, str(e)
+
+        # Step 2: Process household
+        try:
+            logger.info({
+                "message": "Processing household",
+                "request_id": request_id
+            })
+            process_household(data, sf_connection)
+        except Exception as e:
+            logger.error({
+                "request_id": request_id,
+                "error": str(e)
+            })
+            return False, str(e)
+
+        # Step 3: Process participant
+        try:
+            logger.info({
+                "message": "Processing participant",
+                "request_id": request_id
+            })
+            process_participant(data, sf_connection)
+        except Exception as e:
+            logger.error({
+                "request_id": request_id,
+                "error": str(e)
+            })
+            return False, str(e)
+
+        # Step 4: Process participant deactivation
+        try:
+            logger.info({
+                "message": "Processing participant deactivation",
+                "request_id": request_id
+            })
+            process_participant_deactivation(data, sf_connection)
+        except Exception as e:
+            logger.error({
+                "request_id": request_id,
+                "error": str(e)
+            })
+            return False, str(e)
+
+        # Step 5: Process training session
+        try:
+            logger.info({
+                "message": "Processing training session",
+                "request_id": request_id
+            })
+            process_training_session(data, sf_connection)
+        except Exception as e:
+            logger.error({
+                "request_id": request_id,
+                "error": str(e)
+            })
+            return False, str(e)
+
+        # Step 6: Process attendance
+        try:
+            logger.info({
+                "message": "Processing attendance",
+                "request_id": request_id
+            })
+            if os.getenv("SALESFORCE_ENV", "sandbox") != "sandbox": 
+                process_attendance(data, sf_connection)
+        except Exception as e:
+            logger.error({
+                "request_id": request_id,
+                "error": str(e)
+            })
+            return False, str(e)
+
+        return True, None
+
     except Exception as e:
         logger.error({
-            "message": "Error processing training group",
             "request_id": request_id,
             "error": str(e)
         })
-
-    # Process household
-    try:
-        logger.info({
-            "message": "Processing household",
-            "request_id": request_id
-        })
-        process_household(data, sf_connection)
-    except Exception as e:
-        logger.error({
-            "message": "Error processing household",
-            "request_id": request_id,
-            "error": str(e)
-        })
-
-    # Process participant
-    try:
-        logger.info({
-            "message": "Processing participant",
-            "request_id": request_id
-        })
-        process_participant(data, sf_connection)
-    except Exception as e:
-        logger.error({
-            "message": "Error processing participant",
-            "request_id": request_id,
-            "error": str(e)
-        })
-
-    # Process participant deactivation
-    try:
-        logger.info({
-            "message": "Processing participant deactivation",
-            "request_id": request_id
-        })
-        process_participant_deactivation(data, sf_connection)
-    except Exception as e:
-        logger.error({
-            "message": "Error processing participant deactivation",
-            "request_id": request_id,
-            "error": str(e)
-        })
-
-    # Process training session
-    try:
-        logger.info({
-            "message": "Processing training session",
-            "request_id": request_id
-        })
-        process_training_session(data, sf_connection)
-    except Exception as e:
-        logger.error({
-            "message": "Error processing training session",
-            "request_id": request_id,
-            "error": str(e)
-        })
-
-    # Process attendance
-    try:
-        logger.info({
-            "message": "Processing attendance",
-            "request_id": request_id
-        })
-        process_attendance(data, sf_connection)
-    except Exception as e:
-        logger.error({
-            "message": "Error processing attendance",
-            "request_id": request_id,
-            "error": str(e)
-        })
-
-    # Completion log
-    logger.info({
-        "message": "Farmer Registration processing completed",
-        "request_id": request_id
-    })
-
-    return True
-
+        return False, str(e)
 
 def get_farm_size(data):
     survey_detail = data.get('form', {}).get('survey_detail')
@@ -287,7 +284,7 @@ def get_number_of_plots(data):
         return data.get("form", {}).get("Number_of_Plots") or None
     elif country and data.get("form", {}).get("existing_farmer_change_in_ffg", {}).get("former_farmer_primary_secondary_yn") == "Yes":
         return data.get("form", {}).get("existing_farmer_change_in_ffg", {}).get("former_farmer_coffeeplots") or None
-    return None
+    return data.get("form", {}).get("Number_of_Plots") or None
 
 # Processing other ID number
 def get_other_id_number(data):

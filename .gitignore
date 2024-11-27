@@ -3,3 +3,4 @@ venv
 .env
 service-account-key.json
 Dockerfile
+**/__pycache__/
