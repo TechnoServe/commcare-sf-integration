@@ -4,3 +4,4 @@ venv
 service-account-key.json
 Dockerfile
 tns-coffee-data-dd3990b8535e.json
+**/__pycache__/

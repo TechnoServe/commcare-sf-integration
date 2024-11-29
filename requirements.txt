@@ -4,3 +4,5 @@ google-cloud-firestore
 python-dotenv
 simple-salesforce
 google-cloud-logging
+pytest 
+pytest-mock
