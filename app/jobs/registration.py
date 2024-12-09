@@ -10,7 +10,7 @@ def process_training_group(data, sf_connection):
     survey_detail = data.get('form', {}).get('survey_detail')
     if survey_detail in ["New Farmer New Household", "Existing Farmer Change in FFG"]:
         training_group_fields = {
-            "Household_Counter__c": data.get("form").get("Update_Household_Counter")
+            "Household_Counter__c": data.get("form", {}).get("Update_Household_Counter")
         }
         upsert_to_salesforce(
             "Training_Group__c",
