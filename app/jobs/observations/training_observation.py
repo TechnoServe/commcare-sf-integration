@@ -1,6 +1,5 @@
 import asyncio
 from utils.salesforce_client import upsert_to_salesforce
-from utils.attendance_util import process_attendance, process_training_session
 from utils.logging_config import logger
 import os
 
@@ -8,7 +7,7 @@ import os
 
 # 1. Process Training Observation Object
 def process_observation(data, sf_connection):
-    url_string = 'https://www.commcarehq.org/a/' + data.get("domain") + '/api/form/attachment/' + data.get("form", {}).get("meta", {}).get("instanceID") + '/'
+    url_string = f'https://www.commcarehq.org/a/{data.get("domain")}/api/form/attachment/{data.get("form", {}).get("meta", {}).get("instanceID")}/'
     gps_coordinates = data.get("form", {}).get("meta", {}).get("Location", {}).get("#Text")
     observation_fields = {
         "Observer__c": data.get("form", {}).get("Observer"),
