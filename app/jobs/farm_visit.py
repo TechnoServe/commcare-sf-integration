@@ -2,6 +2,7 @@
 import asyncio
 from utils.salesforce_client import upsert_to_salesforce
 from utils.logging_config import logger
+# from registration import process_household, process_participant
 import os
   
 # Process functions for each Salesforce object
@@ -191,5 +192,5 @@ def process_best_practices(data, sf_connection):
             'take_a_photo_of_the_transitional_hive__c': f"{url_string}{data.get('form', {}).get('question1', {}).get('take_a_photo_showing_the_transitional_hives__note_to_trainer_dont_get_too_c')}" if data.get('form', {}).get('question1', {}).get('look_and_ask_how_many_hives_do_you_have_of_each_type_transitional') > 0 else None,
             'take_a_photo_of_the_traditional_hive__c': f"{url_string}{data.get('form', {}).get('question1', {}).get('take_a_photo_showing_the_traditional_hives__note_to_trainer_dont_get_too_c')}" if data.get('form', {}).get('question1', {}).get('look_and_ask_how_many_hives_do_you_have_of_each_type_traditional') > 0 else None,
             'how_many_years_have_you_been_beekeeping__c': data.get('form', {}).get('question1', {}).get('ask_how_many_years_have_you_been_beekeeping') or None,
-            'did_you_start_beekeeping_before_feb_2023__c': data.get('form', {}).get('question1', {}).get('ask_did_you_start_beekeeping_before_february_2023') or None,
+            'did_you_start_beekeeping_before_feb_2023__c': data.get('form', {}).get('question1', {}).get('ask_did_you_start_beekeeping_before_february_2023') or None
         })
