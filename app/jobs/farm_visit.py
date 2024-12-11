@@ -6,7 +6,7 @@ from utils.logging_config import logger
 import os
   
 # Process functions for each Salesforce object
-def generate_common_farm_visit_fields(data, url_string, gps_coordinates):
+def generate_common_farm_visit_fields(data: dict, url_string, gps_coordinates):
     """Generate common fields for farm visit records."""
     return {
         "Name__c": f'FV-{data.get("id", {})}',
@@ -26,10 +26,10 @@ def generate_common_farm_visit_fields(data, url_string, gps_coordinates):
         "Altitude__c": gps_coordinates[2] if len(gps_coordinates) > 2 else None,
         "No_of_curedas__c": data.get('form', {}).get('opening_questions', {}).get('number_of_curedas'),
         "No_of_separate_coffee_fields__c": data.get('form', {}).get('opening_questions', {}).get('number_of_separate_coffee_fields'),
-        "Field_Age__c": data.get('form', {}).get('field_age'),
+        "Field_Age__c": data.get('form', {}).get('field_age')
     }
 
-def process_farm_visit(data, sf_connection):
+def process_farm_visit(data: dict, sf_connection):
     """Process farm visit data and upsert to Salesforce."""
     survey_detail = data.get('form', {}).get('@name')
     url_string = f'https://www.commcarehq.org/a/{data.get("domain")}/api/form/attachment/{data.get("form", {}).get("meta", {}).get("instanceID")}/'
@@ -77,7 +77,7 @@ def process_farm_visit(data, sf_connection):
         sf_connection
     )
 
-def process_best_practices(data, sf_connection):
+def process_best_practices(data: dict, sf_connection):
     farm_visit_type = data.get('form', {}).get('survey_type')
     bp_string = data.get('form', {}) if farm_visit_type == 'Farm Visit Full - ZM' else data.get('form', {}).get('best_practice_questions')
     url_string = f'https://www.commcarehq.org/a/{data.get("domain")}/api/form/attachment/{data.get("form", {}).get("meta", {}).get("instanceID")}/'
@@ -133,6 +133,7 @@ def process_best_practices(data, sf_connection):
         
     }
     
+    # Process FV Best Practices for KE exclusive BPs
     if farm_visit_type == 'Farm Visit Full - KE':
         best_practice_fields.update({
             # 1. Pesticide Use
@@ -162,6 +163,7 @@ def process_best_practices(data, sf_connection):
             'Cover_Crop_Photo_URL__c': f'{url_string}{bp_string.get("erosion_control", {}).get("bean_or_arachis_cover_crop_image")}' if bp_string.get("erosion_control", {}).get("bean_or_arachis_cover_crop_image") != None else None
         })
     
+    # Process FV Best Practices for ET exclusive practices
     if farm_visit_type == 'Farm Visit Full - ET':
         best_practice_fields.update({
             
@@ -194,3 +196,153 @@ def process_best_practices(data, sf_connection):
             'how_many_years_have_you_been_beekeeping__c': data.get('form', {}).get('question1', {}).get('ask_how_many_years_have_you_been_beekeeping') or None,
             'did_you_start_beekeeping_before_feb_2023__c': data.get('form', {}).get('question1', {}).get('ask_did_you_start_beekeeping_before_february_2023') or None
         })
+    # Upsert to Salesforce
+    upsert_to_salesforce(
+        "FV_Best_Practices__c",
+        "FV_Submission_ID__c",
+        f'FV-{data.get("id")}',
+        best_practice_fields,
+        sf_connection
+    )
+
+# Process Erosion Control Best Practice Result    
+def process_best_practice_results_erosion_control(data: dict, sf_connection):
+    farm_visit_type = data.get('form', {}).get('survey_type')
+    bp_string = data.get('form', {}) if farm_visit_type == 'Farm Visit Full - ZM' else data.get('form', {}).get('best_practice_questions')
+    results = str(bp_string.get('erosion_control', {}).get('methods_of_erosion_control')).split(" ")
+    
+    for result in results:
+        best_practice_result_fields = {
+            'FV_Submission_ID__c': f'FV-{data.get('id')}',
+            'Best_Practice_Result_Type__c': 'Erosion Control',
+            'Best_Practice_Result_Description__c': {
+                '1' : 'Grasses such as vetiver planted in rows' if farm_visit_type == 'Farm Visit Full - ET' else 'Stabilizing grasses',
+                '2' : 'Mulch',
+                '3' : 'Water traps' if farm_visit_type == 'Farm Visit Full - ET' else 'Water traps or trenches',
+                '4' : 'Physical barriers. (e.g. rocks)',
+                '5' : 'Terraces',
+                '6' : 'Contour planting',
+                '7' : 'Bean or Arachis cover crop between the rows',
+                '0' : 'No erosion control method seen'
+            }.get(str(result)),
+        }
+        
+        # Upsert to Salesforce
+        upsert_to_salesforce(
+            "FV_Best_Practice_Results__c",
+            "Best_Practice_Result_Submission_ID__c",
+            f'FVBPN-{data.get("id")}_erosion_{result}',
+            best_practice_result_fields,
+            sf_connection
+        )
+        
+        
+# Process Chemicals and Fertilizers Best Practice Result    
+def process_best_practice_results_chemicals_and_fertilizers(data: dict, sf_connection):
+    farm_visit_type = data.get('form', {}).get('survey_type')
+    bp_string = data.get('form', {}) if farm_visit_type == 'Farm Visit Full - ZM' else data.get('form', {}).get('best_practice_questions')
+    results = str(bp_string.get('nutrition', {}).get('type_chemical_applied_on_coffee_last_12_months')).split(" ")
+    
+    for result in results:
+        best_practice_result_fields = {
+            'FV_Submission_ID__c': f'FV-{data.get('id')}',
+            'Best_Practice_Result_Type__c': 'Chemicals and Fertilizers Applied',
+            'Best_Practice_Result_Description__c': {
+                '1' : (
+                    'Compost, homemade or pulp compost' if farm_visit_type == 'Farm Visit Full - ET' else
+                    'NPK 10:10:5-10' if farm_visit_type == 'Farm Visit Full - PR' else
+                    'Compost'
+                    ),
+                '2' : (
+                    'NPK 10:10:5-10' if farm_visit_type == 'Farm Visit Full - PR' else
+                    'Manure'
+                    ),
+                '3' : (
+                    'NPK 22:6:12' if farm_visit_type == 'Farm Visit Full - KE' else
+                    'Lime' if farm_visit_type == 'Farm Visit Full - ZM' else 
+                    'NPK 10:5:15-20' if farm_visit_type == 'Farm Visit Full - PR' else
+                    None
+                    ),
+                '4' : (
+                    'NPK 17:17:17' if farm_visit_type == 'Farm Visit Full - KE' else
+                    'Compound S' if farm_visit_type == 'Farm Visit Full - ZM' else 
+                    'NPK 10:5:15-20' if farm_visit_type == 'Farm Visit Full - PR' else
+                    None
+                    ),
+                '5' : (
+                    'Other NPK' if farm_visit_type == 'Farm Visit Full - KE' else
+                    'Compound J' if farm_visit_type == 'Farm Visit Full - ZM' else 
+                    'NPK 10:5:15-20' if farm_visit_type == 'Farm Visit Full - PR' else
+                    None
+                    ),
+                '6' : (
+                    'Zinc/Boron Foliar feed' if farm_visit_type == 'Farm Visit Full - KE' else
+                    'Single Super Phosphate (SSP)' if farm_visit_type == 'Farm Visit Full - ZM' else 
+                    'NPK 10:5:15-20' if farm_visit_type == 'Farm Visit Full - PR' else
+                    None
+                    ),
+                '7' : (
+                    'General Foliar feed' if farm_visit_type == 'Farm Visit Full - KE' else
+                    'Zinc/Boron Foliar Feed (Tracel)' if farm_visit_type == 'Farm Visit Full - ZM' else 
+                    'NPK 10:5:15-20' if farm_visit_type == 'Farm Visit Full - PR' else
+                    None
+                    ),
+                '8' : (
+                    'LIME' if farm_visit_type == 'Farm Visit Full - KE' else
+                    'Ammonium Nitrate' if farm_visit_type == 'Farm Visit Full - ZM' else 
+                    'NPK 15:5:10-19' if farm_visit_type == 'Farm Visit Full - PR' else
+                    None
+                    ),
+                '9' : (
+                    'NPK 15:5:10-19' if farm_visit_type == 'Farm Visit Full - PR' else
+                    'CAN'
+                    ),
+                '10' : (
+                    'NPK 15:5:10-19' if farm_visit_type == 'Farm Visit Full - PR' else
+                    'Urea'
+                    ),
+                '11' : (
+                    'NPK 15:15:15' if farm_visit_type == 'Farm Visit Full - PR' else None
+                ),
+                '12' : (
+                    'NPK 20:5:10-20' if farm_visit_type == 'Farm Visit Full - PR' else None
+                ),
+                '13' : (
+                    'NPK 20:5:10-20' if farm_visit_type == 'Farm Visit Full - PR' else None
+                ),
+                '14' : (
+                    'DAP' if farm_visit_type == 'Farm Visit Full - PR' else None
+                ),
+                '15' : (
+                    'Urea' if farm_visit_type == 'Farm Visit Full - PR' else None
+                ),
+                '16' : (
+                    'Compost or Manure' if farm_visit_type == 'Farm Visit Full - PR' else None
+                ),
+                '17' : (
+                    'Agricultural Lime - Calcium Carbonate' if farm_visit_type == 'Farm Visit Full - PR' else None
+                ),
+                '18' : (
+                    'Nutrical (cal dolomita)' if farm_visit_type == 'Farm Visit Full - PR' else None
+                ),
+                '19' : (
+                    'Foliar Zinc or Boron' if farm_visit_type == 'Farm Visit Full - PR' else None
+                ),
+                '20' : (
+                    'General Foliar Feed (Nurish, Ferquido Ferqan)' if farm_visit_type == 'Farm Visit Full - PR' else None
+                ),
+                '0' : (
+                    'Did not apply any fertilizer in past 12 months' if farm_visit_type == 'Farm Visit Full - ET' else
+                    'Did NOT apply any fertilizer in past 12 months'
+                    )
+            }.get(str(result)),
+        }
+        
+        # Upsert to Salesforce
+        upsert_to_salesforce(
+            "FV_Best_Practice_Results__c",
+            "Best_Practice_Result_Submission_ID__c",
+            f'FVBPN-{data.get("id")}_fertilizer_{result}',
+            best_practice_result_fields,
+            sf_connection
+        )

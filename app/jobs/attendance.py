@@ -2,7 +2,7 @@ import asyncio
 from utils.attendance_util import process_attendance, process_training_session
 from utils.logging_config import logger
 
-async def send_to_salesforce(data, sf_connection):
+async def send_to_salesforce(data: dict, sf_connection):
     request_id = data.get("id")
 
     # Process training session

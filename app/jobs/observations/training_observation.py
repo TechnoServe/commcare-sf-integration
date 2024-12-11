@@ -6,7 +6,7 @@ import os
 # Process functions for each Salesforce object
 
 # 1. Process Training Observation Object
-def process_observation(data, sf_connection):
+def process_observation(data: dict, sf_connection):
     url_string = f'https://www.commcarehq.org/a/{data.get("domain")}/api/form/attachment/{data.get("form", {}).get("meta", {}).get("instanceID")}/'
     gps_coordinates = data.get("form", {}).get("meta", {}).get("Location", {}).get("#Text")
     observation_fields = {
@@ -40,7 +40,7 @@ def process_observation(data, sf_connection):
 
 # 2. Process Observation Results Object - Participant Feedback
 # Will be using one single country's (Ethiopia) criteria since we can't filter by country in the TO CommCare form
-def process_observation_results_participant(data, sf_connection):
+def process_observation_results_participant(data: dict, sf_connection):
     participant_feedback_criteria = {
         'coffeeet_prepare_and_implement_agronomy_practice': 'Prepare_And_Implement_Agronomy_Practice', 
         'coffeeet_teaching_clarity_and_effectiveness': 'Teaching_Clarity_And_Effectiveness', 
@@ -78,7 +78,7 @@ def process_observation_results_participant(data, sf_connection):
             )
 
 # 3. Process Observation Results Object - Observer Feedback
-def process_observation_results_observer(data, sf_connection):
+def process_observation_results_observer(data: dict, sf_connection):
     observer_feedback_criteria = {
         'coffeeet_shows_professionalism': 'Shows_Professionalism',
         'coffeeet_is_prepared_and_organized': 'Is_Prepared_and_Organized',

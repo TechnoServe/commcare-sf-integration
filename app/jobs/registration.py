@@ -6,7 +6,7 @@ from utils.logging_config import logger
 import os
   
 # Process functions for each Salesforce object
-def process_training_group(data, sf_connection):
+def process_training_group(data: dict, sf_connection):
     survey_detail = data.get('form', {}).get('survey_detail')
     if survey_detail in ["New Farmer New Household", "Existing Farmer Change in FFG"]:
         training_group_fields = {
@@ -20,7 +20,7 @@ def process_training_group(data, sf_connection):
             sf_connection
         )
 
-def process_household(data, sf_connection):
+def process_household(data: dict, sf_connection):
     survey_detail = data.get('form', {}).get('survey_detail')
     primary_member = data.get("form", {}).get("Primary_Household_Member") == "Yes"
     
@@ -83,7 +83,7 @@ def process_household(data, sf_connection):
         None
 
 # Registration Fields for New Farmers
-def process_participant(data, sf_connection):
+def process_participant(data: dict, sf_connection):
     survey_detail = data.get('form', {}).get('survey_detail')
     
     # Adding a small module for PR Registration
@@ -199,7 +199,7 @@ def process_participant(data, sf_connection):
         )
 
 # Cases where the participant is being replaced   
-def process_participant_deactivation(data, sf_connection):
+def process_participant_deactivation(data: dict, sf_connection):
     cond_both_filled = data.get("form", {}).get("existing_household.both_filled", {}).get("replaced_member_full")
     cond_primary_filled = data.get("form", {}).get("existing_household.primary_spot_filled", {}).get("primary_replace_adding")
     cond_secondary_filled = data.get("form", {}).get("existing_household.secondary_spot_filled", {}).get("secondary_replace_adding")
@@ -231,7 +231,7 @@ def process_participant_deactivation(data, sf_connection):
             sf_connection
         )
 
-async def send_to_salesforce(data, sf_connection):
+async def send_to_salesforce(data: dict, sf_connection):
     request_id = data.get("id")
 
     try:
