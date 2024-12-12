@@ -466,3 +466,36 @@ def process_best_practice_results_clr(data: dict, sf_connection):
             )
         
     else: None
+    
+def process_best_practice_results_pruning(data: dict, sf_connection):
+    farm_visit_type = data.get('form', {}).get('survey_type')
+    bp_string = data.get('form', {}) if farm_visit_type == 'Farm Visit Full - ZM' else data.get('form', {}).get('best_practice_questions')
+    results = str(bp_string.get('pruning', {}).get('pruning_method_on_majority_trees')).split(" ")
+    field_age = data.get('form', {}).get('field_age')
+    if farm_visit_type in ['Farm Visit Full - PR', 'Farm Visit Full - ZM', 'Farm Visit Full - KE']:
+        for result in results:
+            best_practice_result_fields = {
+                'FV_Submission_ID__c': f'FV-{data.get('id')}',
+                'Best_Practice_Result_Type__c': 'Pruning',
+                'Best_Practice_Result_Description__c' : (
+                    'N/A' if farm_visit_type in ['Farm Visit Full - PR', 'Farm Visit Full - ZM'] and float(field_age) < 3 else 
+                    {
+                        '1' : 'Centers opened',
+                        '2' : 'Unwanted suckers removed',
+                        '3' : 'Dead branches removed',
+                        '4' : 'Branches touching the ground removed',
+                        '5' : 'Broken / unproductive stems and/or branches removed',
+                        '0' : 'No pruning methods used'
+                    }.get(result)
+                )
+            }
+            # Upsert to Salesforce
+            upsert_to_salesforce(
+                "FV_Best_Practice_Results__c",
+                "Best_Practice_Result_Submission_ID__c",
+                f'FVBPN-{data.get("id")}_pruning_{result}',
+                best_practice_result_fields,
+                sf_connection
+            )
+        
+    else: None
