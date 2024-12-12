@@ -303,39 +303,39 @@ def process_best_practice_results_chemicals_and_fertilizers(data: dict, sf_conne
                     ),
                 '11' : (
                     'NPK 15:15:15' if farm_visit_type == 'Farm Visit Full - PR' else None
-                ),
+                    ),
                 '12' : (
                     'NPK 20:5:10-20' if farm_visit_type == 'Farm Visit Full - PR' else None
-                ),
+                    ),
                 '13' : (
                     'NPK 20:5:10-20' if farm_visit_type == 'Farm Visit Full - PR' else None
-                ),
+                    ),
                 '14' : (
                     'DAP' if farm_visit_type == 'Farm Visit Full - PR' else None
-                ),
+                    ),
                 '15' : (
                     'Urea' if farm_visit_type == 'Farm Visit Full - PR' else None
-                ),
+                    ),
                 '16' : (
                     'Compost or Manure' if farm_visit_type == 'Farm Visit Full - PR' else None
-                ),
+                    ),
                 '17' : (
                     'Agricultural Lime - Calcium Carbonate' if farm_visit_type == 'Farm Visit Full - PR' else None
-                ),
+                    ),
                 '18' : (
                     'Nutrical (cal dolomita)' if farm_visit_type == 'Farm Visit Full - PR' else None
-                ),
+                    ),
                 '19' : (
                     'Foliar Zinc or Boron' if farm_visit_type == 'Farm Visit Full - PR' else None
-                ),
+                    ),
                 '20' : (
                     'General Foliar Feed (Nurish, Ferquido Ferqan)' if farm_visit_type == 'Farm Visit Full - PR' else None
-                ),
+                    ),
                 '0' : (
                     'Did not apply any fertilizer in past 12 months' if farm_visit_type == 'Farm Visit Full - ET' else
                     'Did NOT apply any fertilizer in past 12 months'
                     )
-            }.get(str(result)),
+            }.get(result),
         }
         
         # Upsert to Salesforce
@@ -343,6 +343,100 @@ def process_best_practice_results_chemicals_and_fertilizers(data: dict, sf_conne
             "FV_Best_Practice_Results__c",
             "Best_Practice_Result_Submission_ID__c",
             f'FVBPN-{data.get("id")}_fertilizer_{result}',
+            best_practice_result_fields,
+            sf_connection
+        )
+        
+def process_best_practice_cbb(data: dict, sf_connection):
+    farm_visit_type = data.get('form', {}).get('survey_type')
+    bp_string = data.get('form', {}) if farm_visit_type == 'Farm Visit Full - ZM' else data.get('form', {}).get('best_practice_questions')
+    results = str(bp_string.get('pest_disease_management', {}).get('methods_of_controlling_white_stem_borer')).split(" ") if farm_visit_type == 'Farm Visit Full - ET' else str(bp_string.get('pest_disease_management', {}).get('methods_of_controlling_coffee_berry_borer')).split(" ")
+    
+    for result in results:
+        best_practice_result_fields = {
+            'FV_Submission_ID__c': f'FV-{data.get('id')}',
+            'Best_Practice_Result_Type__c': 'Management of Coffee Berry Borer (CBB)',
+            'Best_Practice_Result_Description__c' : {
+                '1' : (
+                    'Reduce pesticide use and/or encourage natural predators and parasites - beneficial insects.' if farm_visit_type in ['Farm Visit Full - KE', 'Farm Visit Full - ZM'] else
+                    'Encourage natural predators and parasites' if farm_visit_type == 'Farm Visit Full - ET' else
+                    'Reduce pesticide use and encourage natural predators' if farm_visit_type == 'Farm Visit Full - PR' else
+                    None
+                    ),
+                '2' : (
+                    'Strip all berries at the end of harvest, known as crop hygiene' if farm_visit_type in ['Farm Visit Full - KE', 'Farm Visit Full - ZM'] else
+                    'Strip all berries at the end of the harvest or collect fallen berries' if farm_visit_type == 'Farm Visit Full - ET' else
+                    'Strip all berries at the end of harvest' if farm_visit_type == 'Farm Visit Full - PR' else
+                    None
+                    ),
+                '3' : (
+                    'Harvest ripe cherries regularly - to reduce pest and disease levels' if farm_visit_type in ['Farm Visit Full - KE', 'Farm Visit Full - ZM'] else
+                    'Harvest ripe cherries regularly' if farm_visit_type in ['Farm Visit Full - ET', 'Farm Visit Full - PR'] else
+                    None
+                    ),
+                '4' : (
+                    'Use berry borer traps' if farm_visit_type in ['Farm Visit Full - KE', 'Farm Visit Full - ZM', 'Farm Visit Full - ET'] else
+                    'Collect fallen berries' if farm_visit_type == 'Farm Visit Full - PR' else
+                    None
+                    ),
+                '5' : (
+                    'Collect fallen berries at the end of the season - crop hygiene' if farm_visit_type in ['Farm Visit Full - KE', 'Farm Visit Full - ZM'] else
+                    'Use compost or manure, to keep the tree healthy' if farm_visit_type == 'Farm Visit Full - ET' else
+                    'Use berry borer traps' if farm_visit_type == 'Farm Visit Full - PR' else
+                    None
+                    ),
+                '6' : (
+                    'Feed the tree well to keep it healthy' if farm_visit_type in ['Farm Visit Full - KE', 'Farm Visit Full - ZM'] else
+                    'Use good agricultural practices such as weeding or mulching to reduce stress and keep trees healthy' if farm_visit_type == 'Farm Visit Full - ET' else
+                    'Spray pesticides' if farm_visit_type == 'Farm Visit Full - PR' else
+                    None
+                    ),
+                '7' : (
+                    'Use good agricultural practices such as weeding or mulching to reduce stress and keep trees healthy' if farm_visit_type in ['Farm Visit Full - KE', 'Farm Visit Full - ZM'] else
+                    'Stump old coffee' if farm_visit_type == 'Farm Visit Full - ET' else
+                    None
+                    ),
+                '8' : (
+                    'Prune to keep the canopy open' if farm_visit_type in ['Farm Visit Full - KE', 'Farm Visit Full - ZM'] else
+                    'Plant disease resistant varieties' if farm_visit_type == 'Farm Visit Full - ET' else
+                    None
+                    ),
+                '9' : (
+                    'Renovate (new planting or grafting) or rejuvenate regularly to keep main stems less than 8 years old' if farm_visit_type == 'Farm Visit Full - KE' else
+                    'Renovate (new planting) or rejuvenate regularly to keep main stems less than 8 years old' if farm_visit_type == 'Farm Visit Full - ZM' else
+                    'Prune to keep the canopy open' if farm_visit_type == 'Farm Visit Full - ET' else
+                    None
+                    ),
+                '10' : (
+                    'Plant and grow disease resistant varieties e.g. Ruiru 11 and Batian' if farm_visit_type == 'Farm Visit Full - KE' else
+                    'Plant and grow disease resistant varieties' if farm_visit_type == 'Farm Visit Full - ZM' else
+                    'Uproot wilt infected coffee trees and burn' if farm_visit_type == 'Farm Visit Full - ET' else
+                    None
+                    ),
+                '11' : (
+                    'Smooth the bark to reduce egg laying sites for While Coffee Borer' if farm_visit_type in ['Farm Visit Full - KE', 'Farm Visit Full - ZM'] else
+                    'Uproot wilt infected coffee trees and burn' if farm_visit_type == 'Farm Visit Full - ET' else
+                    None
+                    ),
+                '12' : (
+                    'Spray regular pesticides' if farm_visit_type in ['Farm Visit Full - KE', 'Farm Visit Full - ZM'] else
+                    None
+                    ),
+                '13' : (
+                    'Spray homemade herbal or botanical pesticides' if farm_visit_type in ['Farm Visit Full - KE', 'Farm Visit Full - ZM'] else
+                    None
+                    ),
+                '0' : (
+                    'Does not know any methods' if farm_visit_type in ['Farm Visit Full - KE', 'Farm Visit Full - ZM', 'Farm Visit Full - ET'] else
+                    None
+                    ),
+            }.get(result)
+        }
+        # Upsert to Salesforce
+        upsert_to_salesforce(
+            "FV_Best_Practice_Results__c",
+            "Best_Practice_Result_Submission_ID__c",
+            f'FVBPN-{data.get("id")}_cbb_{result}',
             best_practice_result_fields,
             sf_connection
         )
