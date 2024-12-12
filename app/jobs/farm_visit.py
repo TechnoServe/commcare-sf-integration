@@ -79,7 +79,7 @@ def process_farm_visit(data: dict, sf_connection):
 
 def process_best_practices(data: dict, sf_connection):
     farm_visit_type = data.get('form', {}).get('survey_type')
-    bp_string = data.get('form', {}) if farm_visit_type == 'Farm Visit Full - ZM' else data.get('form', {}).get('best_practice_questions')
+    bp_string = data.get('form', {}) if farm_visit_type == 'Farm Visit Full - ZM' else data.get('form', {}).get('best_practice_questions', {})
     url_string = f'https://www.commcarehq.org/a/{data.get("domain")}/api/form/attachment/{data.get("form", {}).get("meta", {}).get("instanceID")}/'
     
     best_practice_fields = {
@@ -87,49 +87,49 @@ def process_best_practices(data: dict, sf_connection):
         
         # 1. Nutrition
         'Color_of_coffee_tree_leaves__c': (
-            '5% or more (5 or more in 100) of the leaves are yellow, pale green or brown.' if bp_string.get('nutrition', {}).get('are_the_leave_green_or_yellow_pale_green') == 0 else 
-            'Nearly all leaves are dark green and less than 5% (less than 5 in 100) are yellow, pale green, or brown.' if bp_string.get('nutrition', {}).get('are_the_leave_green_or_yellow_pale_green') == 0 else 
+            '5% or more (5 or more in 100) of the leaves are yellow, pale green or brown.' if str(bp_string.get('nutrition', {}).get('are_the_leave_green_or_yellow_pale_green')) == '0' else 
+            'Nearly all leaves are dark green and less than 5% (less than 5 in 100) are yellow, pale green, or brown.' if str(bp_string.get('nutrition', {}).get('are_the_leave_green_or_yellow_pale_green')) == '0' else 
             None
             ),
         
         # 2. Weeding
         'how_many_weeds_under_canopy_and_how_big__c': {
-            1: "Few small weeds (less than 30cm) under the tree canopy",
-            2: "Many small weeds under the tree canopy (ground is covered with weeds)",
-            3: "Many large weeds under the tree canopy (ground is covered with weeds)"
-        }.get(bp_string.get('weeding', {}).get('how_many_weeds_under_canopy_and_how_big_are_they')),
+            '1': "Few small weeds (less than 30cm) under the tree canopy",
+            '2': "Many small weeds under the tree canopy (ground is covered with weeds)",
+            '3': "Many large weeds under the tree canopy (ground is covered with weeds)"
+        }.get(str(bp_string.get('weeding', {}).get('how_many_weeds_under_canopy_and_how_big_are_they'))),
         'Have_herbicides_been_used_on_the_field__c': bp_string.get('weeding', {}).get('used_herbicides'),
         'photo_of_weeds_under_the_canopy__c': f'{url_string}{bp_string.get("weeding", {}).get("weeds_under_the_canopy_photo")}',
         
         # 3. Shade Management
         'level_of_shade_present_on_the_farm__c': {
-            0: "NO shade, less than 5%",
-            1: "Light shade, 5 to 20%",
-            2: "Medium shade, 20 to 40%",
-            3: "Heavy shade, over 40%"
-        }.get(bp_string.get('shade_control', {}).get('level_of_shade_present_on_the_farm')),
+            '0': "NO shade, less than 5%",
+            '1': "Light shade, 5 to 20%",
+            '2': "Medium shade, 20 to 40%",
+            '3': "Heavy shade, over 40%"
+        }.get(str(bp_string.get('shade_control', {}).get('level_of_shade_present_on_the_farm'))),
         'photo_of_level_of_shade_on_the_plot__c': f'{url_string}{bp_string.get("shade_control", {}).get("photo_of_level_of_shade_on_the_plot")}',
         
         # 4. Compost & Manure
         'do_you_have_compost_manure__c': (
-            'Yes' if bp_string.get('compost', {}).get('do_you_have_compost_manure') == 1 else
-            'No' if bp_string.get('compost', {}).get('do_you_have_compost_manure') == 0 else
+            'Yes' if str(bp_string.get('compost', {}).get('do_you_have_compost_manure')) == '1' else
+            'No' if str(bp_string.get('compost', {}).get('do_you_have_compost_manure')) == '0' else
             None
             ),
-        'photo_of_the_compost_manure__c': f'{url_string}{bp_string.get("compost", {}).get("photo_of_the_compost_manure")}' if bp_string.get('compost', {}).get('do_you_have_compost_manure') == 1 else None,
+        'photo_of_the_compost_manure__c': f'{url_string}{bp_string.get("compost", {}).get("photo_of_the_compost_manure")}' if str(bp_string.get('compost', {}).get('do_you_have_compost_manure')) == '1' else None,
         
         # 5. Record Keeping
         'do_you_have_a_record_book__c': (
-            'Yes' if bp_string.get('record_keeping', {}).get('do_you_have_a_record_book') == 1 else 
-            'No' if bp_string.get('record_keeping', {}).get('do_you_have_a_record_book') == 0 else
+            'Yes' if str(bp_string.get('record_keeping', {}).get('do_you_have_a_record_book')) == '1' else 
+            'No' if str(bp_string.get('record_keeping', {}).get('do_you_have_a_record_book')) == '0' else
             None
             ),
         'are_there_records_on_the_record_book__c': (
-            'Yes' if bp_string.get('record_keeping', {}).get('are_there_records_on_the_record_book') == 1 else 
-            'No' if bp_string.get('record_keeping', {}).get('are_there_records_on_the_record_book') == 0 else
+            'Yes' if str(bp_string.get('record_keeping', {}).get('are_there_records_on_the_record_book')) == '1' else 
+            'No' if str(bp_string.get('record_keeping', {}).get('are_there_records_on_the_record_book')) == '0' else
             None
         ),
-        'take_a_photo_of_the_record_book__c': f'{url_string}{bp_string.get("record_keeping", {}).get("take_a_photo_of_the_record_book")}' if bp_string.get('record_keeping', {}).get('do_you_have_a_record_book') == 1 else None
+        'take_a_photo_of_the_record_book__c': f'{url_string}{bp_string.get("record_keeping", {}).get("take_a_photo_of_the_record_book")}' if str(bp_string.get('record_keeping', {}).get('do_you_have_a_record_book')) == '1' else None
         
     }
     
@@ -137,13 +137,28 @@ def process_best_practices(data: dict, sf_connection):
     if farm_visit_type == 'Farm Visit Full - KE':
         best_practice_fields.update({
             # 1. Pesticide Use
-            'used_pesticide__c': 'Yes' if bp_string.get('safe_use_of_pesticides', {}).get('used_pesticides') == 1 else 'No',
+            'used_pesticide__c': 'Yes' if str(bp_string.get('safe_use_of_pesticides', {}).get('used_pesticides')) == '1' else 'No',
             'pesticide_number_of_times__c': bp_string.get('safe_use_of_pesticides', {}).get('pesticide_number_of_times'),
             'pesticide_spray_type__c': (
-                'Routine spray' if bp_string.get('safe_use_of_pesticides', {}).get('pesticide_spray_type') == 1 else 
-                'After scouting and seeing a pest' if bp_string.get('safe_use_of_pesticides', {}).get('pesticide_spray_type') == 2 else 
+                'Routine spray' if str(bp_string.get('safe_use_of_pesticides', {}).get('pesticide_spray_type')) == '1' else 
+                'After scouting and seeing a pest' if str(bp_string.get('safe_use_of_pesticides', {}).get('pesticide_spray_type')) == '2' else 
                 None
                 )
+        })
+    
+    # Process FV Best Practices for Zimbabwe (Health of New Planting & Banana Intercrop)
+    if farm_visit_type == 'Farm Visit Full - ZM':
+        best_practice_fields.update({
+            # 1. Health of New Planting
+            'health_of_new_planting_choice__c': {
+                '1' : 'The majority of trees are green and healthy and have grown well',
+                '2' : 'The majority of trees look stressed and growth is slow',
+                '3' : 'The majority of trees have dried up or died'
+                }.get(str(bp_string.get('health_of_new_planting', {}).get('health_of_new_planting_choice'))) or None,
+            
+            # 2. Banana Intercrop
+            'planted_intercrop_bananas__c': bp_string.get('shade_control', {}).get('planted_intercrop_bananas', '').capitalize(),
+            'photograph_intercrop_bananas__c' : f"{url_string}{bp_string.get('shade_control', {}).get('photograph_intercrop_bananas', '')}" if bp_string.get('shade_control', {}).get('planted_intercrop_bananas', '') == 'yes' else ''
         })
     
     # Process FV Best Practices that aren't in ET (Mainstems & Erosion Control Photos)
@@ -208,8 +223,8 @@ def process_best_practices(data: dict, sf_connection):
 # Process Erosion Control Best Practice Result    
 def process_best_practice_results_erosion_control(data: dict, sf_connection):
     farm_visit_type = data.get('form', {}).get('survey_type')
-    bp_string = data.get('form', {}) if farm_visit_type == 'Farm Visit Full - ZM' else data.get('form', {}).get('best_practice_questions')
-    results = str(bp_string.get('erosion_control', {}).get('methods_of_erosion_control')).split(" ")
+    bp_string = data.get('form', {}) if farm_visit_type == 'Farm Visit Full - ZM' else data.get('form', {}).get('best_practice_questions', {})
+    results = str(bp_string.get('erosion_control', {}).get('methods_of_erosion_control', '')).split(" ")
     
     for result in results:
         best_practice_result_fields = {
@@ -224,7 +239,7 @@ def process_best_practice_results_erosion_control(data: dict, sf_connection):
                 '6' : 'Contour planting',
                 '7' : 'Bean or Arachis cover crop between the rows',
                 '0' : 'No erosion control method seen'
-            }.get(result)
+            }.get(result, 'Unknown Result')
         }
         
         # Upsert to Salesforce
@@ -240,8 +255,8 @@ def process_best_practice_results_erosion_control(data: dict, sf_connection):
 # Process Chemicals and Fertilizers Best Practice Result    
 def process_best_practice_results_chemicals_and_fertilizers(data: dict, sf_connection):
     farm_visit_type = data.get('form', {}).get('survey_type')
-    bp_string = data.get('form', {}) if farm_visit_type == 'Farm Visit Full - ZM' else data.get('form', {}).get('best_practice_questions')
-    results = str(bp_string.get('nutrition', {}).get('type_chemical_applied_on_coffee_last_12_months')).split(" ")
+    bp_string = data.get('form', {}) if farm_visit_type == 'Farm Visit Full - ZM' else data.get('form', {}).get('best_practice_questions', {})
+    results = str(bp_string.get('nutrition', {}).get('type_chemical_applied_on_coffee_last_12_months', '')).split(" ")
     
     for result in results:
         best_practice_result_fields = {
@@ -335,7 +350,7 @@ def process_best_practice_results_chemicals_and_fertilizers(data: dict, sf_conne
                     'Did not apply any fertilizer in past 12 months' if farm_visit_type == 'Farm Visit Full - ET' else
                     'Did NOT apply any fertilizer in past 12 months'
                     )
-            }.get(result)
+            }.get(result, 'Unknown Result')
         }
         
         # Upsert to Salesforce
@@ -346,11 +361,12 @@ def process_best_practice_results_chemicals_and_fertilizers(data: dict, sf_conne
             best_practice_result_fields,
             sf_connection
         )
-        
+
+# Process Coffee Berry Borer Best Practice Results
 def process_best_practice_results_cbb(data: dict, sf_connection):
     farm_visit_type = data.get('form', {}).get('survey_type')
-    bp_string = data.get('form', {}) if farm_visit_type == 'Farm Visit Full - ZM' else data.get('form', {}).get('best_practice_questions')
-    results = str(bp_string.get('pest_disease_management', {}).get('methods_of_controlling_white_stem_borer')).split(" ") if farm_visit_type == 'Farm Visit Full - ET' else str(bp_string.get('pest_disease_management', {}).get('methods_of_controlling_coffee_berry_borer')).split(" ")
+    bp_string = data.get('form', {}) if farm_visit_type == 'Farm Visit Full - ZM' else data.get('form', {}).get('best_practice_questions', {})
+    results = str(bp_string.get('pest_disease_management', {}).get('methods_of_controlling_white_stem_borer', '')).split(" ") if farm_visit_type == 'Farm Visit Full - ET' else str(bp_string.get('pest_disease_management', {}).get('methods_of_controlling_coffee_berry_borer', '')).split(" ")
     
     for result in results:
         best_practice_result_fields = {
@@ -427,7 +443,7 @@ def process_best_practice_results_cbb(data: dict, sf_connection):
                     None
                     ),
                 '0' : 'Does not know any methods'
-            }.get(result)
+            }.get(result, 'Unknown Result')
         }
         # Upsert to Salesforce
         upsert_to_salesforce(
@@ -437,11 +453,12 @@ def process_best_practice_results_cbb(data: dict, sf_connection):
             best_practice_result_fields,
             sf_connection
         )
-        
+
+# Process Coffee Leaf Rust Best Practice Results (Only Puerto Rico)       
 def process_best_practice_results_clr(data: dict, sf_connection):
     farm_visit_type = data.get('form', {}).get('survey_type')
-    bp_string = data.get('form', {}) if farm_visit_type == 'Farm Visit Full - ZM' else data.get('form', {}).get('best_practice_questions')
-    results = str(bp_string.get('pest_disease_management', {}).get('methods_of_controlling_coffee_leaf_rust')).split(" ")
+    bp_string = data.get('form', {}) if farm_visit_type == 'Farm Visit Full - ZM' else data.get('form', {}).get('best_practice_questions', {})
+    results = str(bp_string.get('pest_disease_management', {}).get('methods_of_controlling_coffee_leaf_rust', '')).split(" ")
     if farm_visit_type == 'Farm Visit Full - PR':
         for result in results:
             best_practice_result_fields = {
@@ -454,7 +471,7 @@ def process_best_practice_results_clr(data: dict, sf_connection):
                     '4' : 'Spray fungicides',
                     '5' : 'Grow resistant varieties',
                     '0' : 'Does not know any methods'
-                }.get(result)
+                }.get(result, 'Unknown Result')
             }
             # Upsert to Salesforce
             upsert_to_salesforce(
@@ -466,19 +483,20 @@ def process_best_practice_results_clr(data: dict, sf_connection):
             )
         
     else: None
-    
+
+# Process Pruning Best Practice Results    
 def process_best_practice_results_pruning(data: dict, sf_connection):
     farm_visit_type = data.get('form', {}).get('survey_type')
-    bp_string = data.get('form', {}) if farm_visit_type == 'Farm Visit Full - ZM' else data.get('form', {}).get('best_practice_questions')
-    results = str(bp_string.get('pruning', {}).get('pruning_method_on_majority_trees')).split(" ")
-    field_age = data.get('form', {}).get('field_age')
+    bp_string = data.get('form', {}) if farm_visit_type == 'Farm Visit Full - ZM' else data.get('form', {}).get('best_practice_questions', {})
+    results = str(bp_string.get('pruning', {}).get('pruning_method_on_majority_trees', '')).split(" ")
+    field_age = float(data.get('form', {}).get('field_age', 0))
     if farm_visit_type in ['Farm Visit Full - PR', 'Farm Visit Full - ZM', 'Farm Visit Full - KE']:
         for result in results:
             best_practice_result_fields = {
                 'FV_Submission_ID__c': f'FV-{data.get('id')}',
                 'Best_Practice_Result_Type__c': 'Pruning',
                 'Best_Practice_Result_Description__c' : (
-                    'N/A' if farm_visit_type in ['Farm Visit Full - PR', 'Farm Visit Full - ZM'] and float(field_age) < 3 else 
+                    'N/A' if farm_visit_type in ['Farm Visit Full - PR', 'Farm Visit Full - ZM'] and field_age < 3 else 
                     {
                         '1' : 'Centers opened',
                         '2' : 'Unwanted suckers removed',
@@ -486,7 +504,7 @@ def process_best_practice_results_pruning(data: dict, sf_connection):
                         '4' : 'Branches touching the ground removed',
                         '5' : 'Broken / unproductive stems and/or branches removed',
                         '0' : 'No pruning methods used'
-                    }.get(result)
+                    }.get(result, 'Unknown Result')
                 )
             }
             # Upsert to Salesforce
@@ -498,4 +516,35 @@ def process_best_practice_results_pruning(data: dict, sf_connection):
                 sf_connection
             )
         
+    else: None
+    
+# Process Weeding Best Practice Results
+def process_best_practice_results_pruning(data: dict, sf_connection):
+    farm_visit_type = data.get('form', {}).get('survey_type')
+    bp_string = data.get('form', {}) if farm_visit_type == 'Farm Visit Full - ZM' else data.get('form', {}).get('best_practice_questions', {})
+    results = str(bp_string.get('weeding', {}).get('which_product_have_you_used', '')).split(" ")
+    if farm_visit_type in ['Farm Visit Full - ZM', 'Farm Visit Full - KE', 'Farm Visit Full - PR']:
+        for result in results:
+            best_practice_result_fields = {
+                'FV_Submission_ID__c': f'FV-{data.get('id')}',
+                'Best_Practice_Result_Type__c': 'Weeding',
+                'Best_Practice_Result_Description__c' : {
+                    '1' : 'Glyphosate (Eg Round Up)' if farm_visit_type in ['Farm Visit Full - ZM', 'Farm Visit Full - KE'] else
+                    'Glyphosate (Honcho Plus, Round Up Ultra, GlyStar Plus, Credit, Compare and Save, TouchDown)' if farm_visit_type == 'Farm Visit Full - PR' else
+                    None,
+                    '2' : 'Paraquat (Eg. Gramoxone)' if farm_visit_type in ['Farm Visit Full - ZM', 'Farm Visit Full - KE'] else
+                    'Paraquat (Gramaxon, Parazone, Parashot)' if farm_visit_type == 'Farm Visit Full - PR' else
+                    None,
+                    '3' : bp_string.get('weeding', {}).get('ask_which_other_product_have_you_used') if farm_visit_type in ['Farm Visit Full - ZM', 'Farm Visit Full - KE'] else
+                    None,
+                }.get(result, 'Unknown Result')
+            }
+            # Upsert to Salesforce
+            upsert_to_salesforce(
+                "FV_Best_Practice_Results__c",
+                "Best_Practice_Result_Submission_ID__c",
+                f'FVBPN-{data.get("id")}_weeding_{result}',
+                best_practice_result_fields,
+                sf_connection
+            )
     else: None
