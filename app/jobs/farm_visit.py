@@ -184,32 +184,35 @@ def process_best_practices(data: dict, sf_connection):
             
             # 1. Weeding
             'has_coffee_field_been_dug__c': (
-                'Yes' if bp_string.get('weeding', {}).get('look_has_the_coffee_field_been_dug') == 1 else
-                'No' if bp_string.get('weeding', {}).get('look_has_the_coffee_field_been_dug') == 0 else
+                'Yes' if str(bp_string.get('weeding', {}).get('look_has_the_coffee_field_been_dug')) == '1' else
+                'No' if str(bp_string.get('weeding', {}).get('look_has_the_coffee_field_been_dug')) == '0' else
                 None
                 ),
             
             # 2. Stumping (Needs Revision)
             'stumping_method_on_majority_of_trees__c': (
-                'Yes' if bp_string.get('stumping', {}).get('stumping_methods_used_on_majority_of_trees') == 1 else
-                'No' if bp_string.get('stumping', {}).get('stumping_methods_used_on_majority_of_trees') == 0 else
+                'Yes' if str(bp_string.get('stumping', {}).get('stumping_methods_used_on_majority_of_trees')) == '1' else
+                'No' if str(bp_string.get('stumping', {}).get('stumping_methods_used_on_majority_of_trees')) == '0' else
                 None
             ),
             'year_stumping__c': '', # This is confusing
             'number_of_trees_stumped__c': bp_string.get('stumping', {}).get('total_stumped_trees'),
             'main_stems_in_majority_coffee_trees__c':  bp_string.get('stumping', {}).get('look_on_average_how_many_main_stems_are_on_the_stumped_trees_note_to_traine'),
-            'photos_of_stumped_coffee_trees__c': f'{url_string}{bp_string.get("stumping", {}).get("photos_of_stumped_coffee_trees")}' if bp_string.get('stumping', {}).get('stumping_methods_used_on_majority_of_trees') == 1 else None,
+            'photos_of_stumped_coffee_trees__c': f'{url_string}{bp_string.get("stumping", {}).get("photos_of_stumped_coffee_trees")}' if str(bp_string.get('stumping', {}).get('stumping_methods_used_on_majority_of_trees')) == '1' else None,
             
             # 3. Beekeeping (Only HWG)
             'do_you_keep_bees__c': data.get('form', {}).get('question1', {}).get('ask_do_you_keep_bees_if_yes_ask_can_you_show_me_were_you_keep_your_bees') or None,
             'number_of_bee_hives__c': data.get('form', {}).get('question1', {}).get('look_and_ask_how_many_hives_do_you_have_of_each_type') or None,
             'number_of_bee_hives_transitional__c': data.get('form', {}).get('question1', {}).get('look_and_ask_how_many_hives_do_you_have_of_each_type_transitional') or None,
             'number_of_bee_hives_traditional__c': data.get('form', {}).get('question1', {}).get('look_and_ask_how_many_hives_do_you_have_of_each_type_traditional') or None,
-            'take_a_photo_showing_the_modern_hives__c': f"{url_string}{data.get('form', {}).get('question1', {}).get('take_a_photo_showing_the_modern_hives_note_to_trainer_dont_get_too_close_to')}" if data.get('form', {}).get('question1', {}).get('look_and_ask_how_many_hives_do_you_have_of_each_type') > 0 else None,
-            'take_a_photo_of_the_transitional_hive__c': f"{url_string}{data.get('form', {}).get('question1', {}).get('take_a_photo_showing_the_transitional_hives__note_to_trainer_dont_get_too_c')}" if data.get('form', {}).get('question1', {}).get('look_and_ask_how_many_hives_do_you_have_of_each_type_transitional') > 0 else None,
-            'take_a_photo_of_the_traditional_hive__c': f"{url_string}{data.get('form', {}).get('question1', {}).get('take_a_photo_showing_the_traditional_hives__note_to_trainer_dont_get_too_c')}" if data.get('form', {}).get('question1', {}).get('look_and_ask_how_many_hives_do_you_have_of_each_type_traditional') > 0 else None,
+            'take_a_photo_showing_the_modern_hives__c': f"{url_string}{data.get('form', {}).get('question1', {}).get('take_a_photo_showing_the_modern_hives_note_to_trainer_dont_get_too_close_to')}" if float(data.get('form', {}).get('question1', {}).get('look_and_ask_how_many_hives_do_you_have_of_each_type')) > 0 else None,
+            'take_a_photo_of_the_transitional_hive__c': f"{url_string}{data.get('form', {}).get('question1', {}).get('take_a_photo_showing_the_transitional_hives__note_to_trainer_dont_get_too_c')}" if float(data.get('form', {}).get('question1', {}).get('look_and_ask_how_many_hives_do_you_have_of_each_type_transitional')) > 0 else None,
+            'take_a_photo_of_the_traditional_hive__c': f"{url_string}{data.get('form', {}).get('question1', {}).get('take_a_photo_showing_the_traditional_hives__note_to_trainer_dont_get_too_c')}" if float(data.get('form', {}).get('question1', {}).get('look_and_ask_how_many_hives_do_you_have_of_each_type_traditional')) > 0 else None,
             'how_many_years_have_you_been_beekeeping__c': data.get('form', {}).get('question1', {}).get('ask_how_many_years_have_you_been_beekeeping') or None,
-            'did_you_start_beekeeping_before_feb_2023__c': data.get('form', {}).get('question1', {}).get('ask_did_you_start_beekeeping_before_february_2023') or None
+            'did_you_start_beekeeping_before_feb_2023__c': data.get('form', {}).get('question1', {}).get('ask_did_you_start_beekeeping_before_february_2023') or None,
+            
+            # 4. Erosion Control
+            'take_a_photo_of_erosion_control__c' : f"{url_string}{bp_string.get('erosion_control', {}).get('photo_of_erosion_control_method')}" if bp_string.get('erosion_control', {}).get('photo_of_erosion_control_method') != None else None
         })
     # Upsert to Salesforce
     upsert_to_salesforce(
@@ -544,6 +547,59 @@ def process_best_practice_results_pruning(data: dict, sf_connection):
                 "FV_Best_Practice_Results__c",
                 "Best_Practice_Result_Submission_ID__c",
                 f'FVBPN-{data.get("id")}_weeding_{result}',
+                best_practice_result_fields,
+                sf_connection
+            )
+    else: None
+    
+# Process Pesticide Use Pest Problems Best Practice Results (For PR Exclusively)
+def process_best_practice_results_pesticide_use_pest_problems(data: dict, sf_connection):
+    farm_visit_type = data.get('form', {}).get('survey_type')
+    bp_string = data.get('form', {}) if farm_visit_type == 'Farm Visit Full - ZM' else data.get('form', {}).get('best_practice_questions', {})
+    results = str(bp_string.get('pesticide_use', {}).get('which_pests_cause_you_problems', '')).split(" ")
+    if farm_visit_type == 'Farm Visit Full - PR':
+        for result in results:
+            best_practice_result_fields = {
+                'FV_Submission_ID__c': f'FV-{data.get('id')}',
+                'Best_Practice_Result_Type__c': 'Pest Problems',
+                'Best_Practice_Result_Description__c' : {
+                    '1' : 'Leaf miner',
+                    '2' : 'Coffee Berry Borer',
+                    '3' : 'Scles and Mealy bugs',
+                    '4' : 'None pest issue'
+                }.get(result, 'Unknown Result')
+            }
+            # Upsert to Salesforce
+            upsert_to_salesforce(
+                "FV_Best_Practice_Results__c",
+                "Best_Practice_Result_Submission_ID__c",
+                f'FVBPN-{data.get("id")}_pesticide_use_problems_{result}',
+                best_practice_result_fields,
+                sf_connection
+            )
+    else: None
+
+# Process Pesticide Use: Pesticides Best Practice Results (For PR Exclusively)   
+def process_best_practice_results_pesticide_use_sprays(data: dict, sf_connection):
+    farm_visit_type = data.get('form', {}).get('survey_type')
+    bp_string = data.get('form', {}) if farm_visit_type == 'Farm Visit Full - ZM' else data.get('form', {}).get('best_practice_questions', {})
+    results = str(bp_string.get('pesticide_use', {}).get('do_you_spray_any_of_the_following_on_your_farm_for_leaf_miner_or_rust', '')).split(" ")
+    if farm_visit_type == 'Farm Visit Full - PR':
+        for result in results:
+            best_practice_result_fields = {
+                'FV_Submission_ID__c': f'FV-{data.get('id')}',
+                'Best_Practice_Result_Type__c': 'Pest Sprays',
+                'Best_Practice_Result_Description__c' : {
+                    '1' : 'Products containing Imidacloprid',
+                    '2' : 'Products containing Propiconazole',
+                    '3' : 'None of the products used'
+                }.get(result, 'Unknown Result')
+            }
+            # Upsert to Salesforce
+            upsert_to_salesforce(
+                "FV_Best_Practice_Results__c",
+                "Best_Practice_Result_Submission_ID__c",
+                f'FVBPN-{data.get("id")}_pesticide_use_sprays_{result}',
                 best_practice_result_fields,
                 sf_connection
             )
