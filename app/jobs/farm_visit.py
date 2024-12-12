@@ -224,7 +224,7 @@ def process_best_practice_results_erosion_control(data: dict, sf_connection):
                 '6' : 'Contour planting',
                 '7' : 'Bean or Arachis cover crop between the rows',
                 '0' : 'No erosion control method seen'
-            }.get(str(result)),
+            }.get(result)
         }
         
         # Upsert to Salesforce
@@ -335,7 +335,7 @@ def process_best_practice_results_chemicals_and_fertilizers(data: dict, sf_conne
                     'Did not apply any fertilizer in past 12 months' if farm_visit_type == 'Farm Visit Full - ET' else
                     'Did NOT apply any fertilizer in past 12 months'
                     )
-            }.get(result),
+            }.get(result)
         }
         
         # Upsert to Salesforce
@@ -347,7 +347,7 @@ def process_best_practice_results_chemicals_and_fertilizers(data: dict, sf_conne
             sf_connection
         )
         
-def process_best_practice_cbb(data: dict, sf_connection):
+def process_best_practice_results_cbb(data: dict, sf_connection):
     farm_visit_type = data.get('form', {}).get('survey_type')
     bp_string = data.get('form', {}) if farm_visit_type == 'Farm Visit Full - ZM' else data.get('form', {}).get('best_practice_questions')
     results = str(bp_string.get('pest_disease_management', {}).get('methods_of_controlling_white_stem_borer')).split(" ") if farm_visit_type == 'Farm Visit Full - ET' else str(bp_string.get('pest_disease_management', {}).get('methods_of_controlling_coffee_berry_borer')).split(" ")
@@ -426,10 +426,7 @@ def process_best_practice_cbb(data: dict, sf_connection):
                     'Spray homemade herbal or botanical pesticides' if farm_visit_type in ['Farm Visit Full - KE', 'Farm Visit Full - ZM'] else
                     None
                     ),
-                '0' : (
-                    'Does not know any methods' if farm_visit_type in ['Farm Visit Full - KE', 'Farm Visit Full - ZM', 'Farm Visit Full - ET'] else
-                    None
-                    ),
+                '0' : 'Does not know any methods'
             }.get(result)
         }
         # Upsert to Salesforce
@@ -440,3 +437,32 @@ def process_best_practice_cbb(data: dict, sf_connection):
             best_practice_result_fields,
             sf_connection
         )
+        
+def process_best_practice_results_clr(data: dict, sf_connection):
+    farm_visit_type = data.get('form', {}).get('survey_type')
+    bp_string = data.get('form', {}) if farm_visit_type == 'Farm Visit Full - ZM' else data.get('form', {}).get('best_practice_questions')
+    results = str(bp_string.get('pest_disease_management', {}).get('methods_of_controlling_coffee_leaf_rust')).split(" ")
+    if farm_visit_type == 'Farm Visit Full - PR':
+        for result in results:
+            best_practice_result_fields = {
+                'FV_Submission_ID__c': f'FV-{data.get('id')}',
+                'Best_Practice_Result_Type__c': 'Management of Coffee Leaf Rust (CLR)',
+                'Best_Practice_Result_Description__c' : {
+                    '1' : 'Feed the tree well to keep it healthy',
+                    '2' : 'Use good agricultural practices such as weeding or mulching to reduce stress and keep trees healthy',
+                    '3' : 'Prune or keep canopy open',
+                    '4' : 'Spray fungicides',
+                    '5' : 'Grow resistant varieties',
+                    '0' : 'Does not know any methods'
+                }.get(result)
+            }
+            # Upsert to Salesforce
+            upsert_to_salesforce(
+                "FV_Best_Practice_Results__c",
+                "Best_Practice_Result_Submission_ID__c",
+                f'FVBPN-{data.get("id")}_clr_{result}',
+                best_practice_result_fields,
+                sf_connection
+            )
+        
+    else: None
