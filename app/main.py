@@ -62,7 +62,6 @@ def process_data():
             "request_id": request_id
         })
         return jsonify({"error": "Job name not provided in payload"}), 200
-
     try:
         logger.info({
             "message": "Storing data in Firestore",

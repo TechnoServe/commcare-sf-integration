@@ -1,7 +1,7 @@
 from utils.salesforce_client import upsert_to_salesforce
 
 # Update the Training Session Object
-def process_training_session(data, sf_connection):
+def process_training_session(data: dict, sf_connection):
     form_name = data.get("form",{}).get("@name")
     
     # 1. Process for Participant Registration
@@ -24,7 +24,7 @@ def process_training_session(data, sf_connection):
     else:
         None
     
-def process_attendance(data, sf_connection):
+def process_attendance(data: dict, sf_connection):
     survey_detail = data.get("form",{}).get("survey_detail")
 
     # 1. Process for Farmer Registration - New Farmer

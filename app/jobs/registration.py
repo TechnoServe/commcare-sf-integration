@@ -6,23 +6,26 @@ from utils.logging_config import logger
 import os
   
 # Process functions for each Salesforce object
-def process_training_group(data, sf_connection):
+def process_training_group(data: dict, sf_connection):
     survey_detail = data.get('form', {}).get('survey_detail')
     if survey_detail in ["New Farmer New Household", "Existing Farmer Change in FFG"]:
         training_group_fields = {
-            "Household_Counter__c": data.get("form").get("Update_Household_Counter")
+            "Household_Counter__c": data.get("form", {}).get("Update_Household_Counter")
         }
         upsert_to_salesforce(
             "Training_Group__c",
             "CommCare_Case_Id__c",
-            data.get("form").get("Training_Group_Id"),
+            data.get("form", {}).get("Training_Group_Id"),
             training_group_fields,
             sf_connection
         )
 
-def process_household(data, sf_connection):
+def process_household(data: dict, sf_connection):
     survey_detail = data.get('form', {}).get('survey_detail')
     primary_member = data.get("form", {}).get("Primary_Household_Member") == "Yes"
+    
+    # Adding a small module for PR Registration
+    pr_registration = data.get('form', {}).get('survey_type') == 'Farm Visit Full - PR' and data.get('form', {}).get('new_farmer') == 1
 
     # 1. Farmer Registration Form
     if survey_detail in ["New Farmer New Household", "New Farmer Existing Household", "Existing Farmer Change in FFG"]:
@@ -38,7 +41,7 @@ def process_household(data, sf_connection):
             upsert_to_salesforce(
                 "Household__c",
                 "Household_ID__c",
-                data.get("form").get("Household_Id"),
+                data.get("form", {}).get("Household_Id"),
                 household_fields,
                 sf_connection
             )
@@ -54,14 +57,37 @@ def process_household(data, sf_connection):
             upsert_to_salesforce(
                 "Household__c",
                 "Household_ID__c",
-                data.get("form").get("Household_Id"),
+                data.get("form", {}).get("Household_Id"),
                 household_fields,
                 sf_connection
             )
+    
+    # 3. Special Case - PR Registration
+    elif pr_registration:
+        household_fields = {
+            "Name": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("Household_Number"),
+            "Training_Group__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("Training_Group_Id"),
+            "Farm_Size__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("Farm_Size"),
+            "Farm_Size_Before__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("farm_size_3_years_and_older"),
+            "Farm_Size_After__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("farm_size_under_3_years")
+        }
+        
+        upsert_to_salesforce(
+            "Household__c",
+            "Household_ID__c",
+            data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("Household_Id"),
+            household_fields,
+            sf_connection
+        )
+    else:
+        None
 
 # Registration Fields for New Farmers
-def process_participant(data, sf_connection):
+def process_participant(data: dict, sf_connection):
     survey_detail = data.get('form', {}).get('survey_detail')
+    
+    # Adding a small module for PR Registration
+    pr_registration = data.get('form', {}).get('survey_type') == 'Farm Visit Full - PR' and data.get('form', {}).get('new_farmer') == 1
     
     # 1. New Farmer Registration
     if survey_detail in ["New Farmer New Household", "New Farmer Existing Household"]:
@@ -69,7 +95,7 @@ def process_participant(data, sf_connection):
             # Relationships and Main IDs
             "TNS_Id__c": data.get("form", {}).get("Farmer_Id"),
             "Household__r":{
-                "Household_ID__c": data.get("form").get("Household_Id")
+                "Household_ID__c": data.get("form", {}).get("Household_Id")
             },
             "Training_Group__c": data.get("form", {}).get("Training_Group_Id"),
             
@@ -105,7 +131,7 @@ def process_participant(data, sf_connection):
             # Relationships and Main IDs
             "TNS_Id__c": data.get("form", {}).get("Farmer_Id"),
             "Household__r":{
-                "Household_ID__c": data.get("form").get("Household_Id")
+                "Household_ID__c": data.get("form", {}).get("Household_Id")
             },
             "Training_Group__c": data.get("form", {}).get("Training_Group_Id"),
             "Former_Training_Group__c": data.get("form", {}).get("existing_farmer_change_in_ffg", {}).get("old_farmer_ffg"),
@@ -133,13 +159,47 @@ def process_participant(data, sf_connection):
         upsert_to_salesforce(
             "Participant__c",
             "CommCare_Case_Id__c",
-            data.get("form", {}).get("case", {}).get("@caseid"),
+            data.get("form", {}).get("case", {}).get("@case_id"),
+            participant_fields,
+            sf_connection
+        )
+    
+    # 4. PR Registration
+    elif pr_registration:
+        participant_fields = {
+            # Relationships and Main IDs
+            "TNS_Id__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("Farmer_Id"),
+            "Household__r":{
+                "Household_ID__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("Household_Id")
+            },
+            "Training_Group__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("Training_Group_Id"),
+            
+            # Farmer Data
+            "Farm_Size__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("Farm_Size"),
+            "Farm_Size_Before__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("farm_size_3_years_and_older"),
+            "Farm_Size_After__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("farm_size_under_3_years"),
+            "Name": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("First_Name"),
+            "Middle_Name__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("Middle_Name") or None,
+            "Last_Name__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("Last_Name"),
+            "Age__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("Age"),
+            "Gender__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("Gender"),
+            "Status__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("Status"),
+            "Phone_Number__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("Phone_Number") or None,
+            "Primary_Household_Member__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("Primary_Household_Member"),
+            "Sent_to_OpenFn_Status__c": "Complete",
+            "Registration_Date__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("registration_date") or None,
+            "Create_In_CommCare__c": False
+        }
+        upsert_to_salesforce(
+            "Participant__c",
+            "CommCare_Case_Id__c",
+            data.get("form", {}).get("subcase_0", {}).get("case", {}).get("@case_id"),
             participant_fields,
             sf_connection
         )
 
 # Cases where the participant is being replaced   
-def process_participant_deactivation(data, sf_connection):
+def process_participant_deactivation(data: dict, sf_connection):
     cond_both_filled = data.get("form", {}).get("existing_household.both_filled", {}).get("replaced_member_full")
     cond_primary_filled = data.get("form", {}).get("existing_household.primary_spot_filled", {}).get("primary_replace_adding")
     cond_secondary_filled = data.get("form", {}).get("existing_household.secondary_spot_filled", {}).get("secondary_replace_adding")
@@ -171,7 +231,7 @@ def process_participant_deactivation(data, sf_connection):
             sf_connection
         )
 
-async def send_to_salesforce(data, sf_connection):
+async def send_to_salesforce(data: dict, sf_connection):
     request_id = data.get("id")
 
     try:

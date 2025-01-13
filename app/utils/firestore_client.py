@@ -10,6 +10,7 @@ def save_to_firestore(data, job_name, status, db=None):
     doc_ref = db.collection("job_statuses").add({
         "data": data,
         "job_name": job_name,
+        "job_id": data.get("id"),
         "status": status,
         "run_retries": 0,
         "last_retried_at": "",
