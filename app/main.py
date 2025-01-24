@@ -132,7 +132,7 @@ def process_data_salesforce():
 
 async def process_firestore_records():
     # Query records to send to SF. 10 Records at a time
-    docs = db.collection("job_statuses").where("status", "==", "completed").where("job_name", "==", "Farmer Registration").limit(10).get()
+    docs = db.collection("job_statuses").where("status", "==", "new").where("job_name", "==", "Farmer Registration").limit(10).get()
 
     processed_records = []
     for doc in docs:
@@ -209,6 +209,85 @@ async def process_firestore():
         })
         return jsonify({"error": f"Error processing Firestore records: {str(e)}"}), 500
 
+async def process_failed_records():
+    # Query records to send to SF. 10 Records at a time
+    docs = db.collection("job_statuses").where("status", "==", "failed").where("run_retries", "<", 5).where("job_name", "==", "Farmer Registration").limit(10).get()
+
+    processed_records = []
+    for doc in docs:
+        doc_id = doc.id
+        data = doc.to_dict()  # Extract data from Firestore
+        request_id = data.get("data", {}).get("id")  # Request ID: Used to track the record in logs
+        job_name = data.get("job_name")
+
+        try:
+            logger.info({
+                "message": f"Started sending record with Request ID {request_id} to Salesforce",
+                "request_id": request_id,
+                "doc_id": doc_id
+            })
+
+            update_firestore_status(doc_id, "processing")  # Set status to "processing" before handling the record
+
+            # Check if the job is Farmer Registration
+            if job_name == "Farmer Registration":
+                success, error = await registration.send_to_salesforce(data.get("data"), sf_connection)
+
+            if success:
+                # If processing is successful, mark as completed
+                update_firestore_status(doc_id, "completed")
+                processed_records.append(doc_id)
+                logger.info({
+                    "message": f"Processed successfully record with Request ID {request_id} to Salesforce",
+                    "request_id": request_id,
+                    "doc_id": doc_id
+                })
+            else:
+                # If failed, mark record as failed with the error
+                update_firestore_status(doc_id, "failed", {"error": error, "run_retries": data.get("run_retries", 0) + 1})
+                logger.error({
+                    "message": f"Failed to process record with Request ID {request_id} to Salesforce",
+                    "request_id": request_id,
+                    "doc_id": doc_id,
+                    "error": error
+                })
+
+        except Exception as e:
+            # In case of error, mark as failed and log the error
+            update_firestore_status(doc_id, "failed", {"error": str(e), "run_retries": data.get("run_retries", 0) + 1})
+            logger.error({
+                "message": f"Error processing record with Request ID {request_id} to Salesforce",
+                "request_id": request_id,
+                "doc_id": doc_id,
+                "error": str(e)
+            })
+
+    return processed_records
+
+@app.route('/auto-retry', methods=['POST'])
+async def retry_firestore_records():
+    try:
+        logger.info({
+            "message": "Auto Retrying started from scheduler"
+        })
+        
+        # Assuming process_firestore_records is asynchronous and processes records in batches
+        processed_records = await process_failed_records()
+
+        logger.info({
+            "message": "Auto Retrying processing completed",
+            "processed_records": processed_records
+        })
+
+        return jsonify({"status": "Processing completed", "processed_records": processed_records, "processed_records": len(processed_records)}), 200
+
+    except Exception as e:
+        logger.error({
+            "message": "Error in processing Auto Retrying",
+            "error": str(e), 
+        })
+        return jsonify({"error": f"Error retrying Firestore records: {str(e)}"}), 500
+
 
 @app.route('/record/<id>', methods=['GET'])
 def get_record(id):
@@ -262,7 +341,6 @@ async def retry_record(id):
                 if job_name == "Farmer Registration":
                     success, error = await registration.send_to_salesforce(data.get("data"), sf_connection)
                     logger.info(f'Process was successful: {success}')
-                    logger.info(f'Testing this: {data.get("run_retries", 0) + 1}')
 
                 if success:
                     # If successful, update Firestore status to completed
@@ -310,21 +388,59 @@ async def retry_record(id):
         })
         return jsonify({"error": "Failed to retry records", "details": str(e)}), 500
 
+
+@app.route('/failed', methods=['GET'])
+def get_failed_jobs():
+    """
+    Endpoint to retrieve jobs with 'failed' status from the Firestore database.
+    """
+    try:
+        # Query Firestore for documents with status 'failed', limited to 5
+        processing_docs = db.collection("job_statuses").where("status", "==", "failed").limit(5).get()
+
+        # Extract relevant fields from Firestore documents
+        failed_jobs = [
+            {
+                "id": doc.id,  # Firestore document ID
+                **doc.to_dict()  # Document fields
+            }
+            for doc in processing_docs
+        ]
+
+        # Return the list of failed jobs
+        return jsonify({"failed_jobs": failed_jobs}), 200
+
+    except Exception as e:
+        # Log the error with additional context
+        logger.error({
+            "message": "Error retrieving failed jobs",
+            "endpoint": "/failed",
+            "error": str(e)
+        })
+        # Return an error response
+        return jsonify({"error": f"Error retrieving failed jobs: {str(e)}"}), 500
+
+
+
 @app.route('/status-count', methods=['GET'])
 def status_count():
     try:
         status_count_dict = {}
 
-        # completed_docs = db.collection("job_statuses").where("status", "==", "completed").stream()
-        # status_count_dict["completed"] = sum(1 for _ in completed_docs)
+        new_docs = db.collection("job_statuses").where("status", "==", "new").where("job_name", "==", "Farmer Registration").count()
+
+        completed_docs = db.collection("job_statuses").where("status", "==", "completed").where("job_name", "==", "Farmer Registration").count()
+
+        status_count_dict["completed"] = completed_docs.get()[0][0].value
+        status_count_dict["new"] = new_docs.get()[0][0].value
 
         # Query for "processing" status
-        processing_docs = db.collection("job_statuses").where("status", "==", "processing").stream()
-        status_count_dict["processing"] = sum(1 for _ in processing_docs)
+        processing_docs = db.collection("job_statuses").where("status", "==", "processing").where("job_name", "==", "Farmer Registration").count()
+        status_count_dict["processing"] = processing_docs.get()[0][0].value
 
         # Query for "failed" status
-        failed_docs = db.collection("job_statuses").where("status", "==", "failed").stream()
-        status_count_dict["failed"] = sum(1 for _ in failed_docs)
+        failed_docs = db.collection("job_statuses").where("status", "==", "failed").where("job_name", "==", "Farmer Registration").count()
+        status_count_dict["failed"] = failed_docs.get()[0][0].value
 
         return jsonify({"status_counts": status_count_dict}), 200
 
