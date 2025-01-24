@@ -7,6 +7,7 @@ import os
 from simple_salesforce import Salesforce
 from dotenv import load_dotenv
 from utils.logging_config import logger  # Import the centralized logger
+import datetime
 
 load_dotenv()  # Load environment variables
 
@@ -68,7 +69,51 @@ def process_data():
             "request_id": request_id,
             "job_name": job_name
         })
-        doc_id = save_to_firestore(data, job_name, "new")
+        doc_id = save_to_firestore(data, job_name, "new", 'CommCare')
+        logger.info({
+            "message": "Data stored in Firestore",
+            "request_id": request_id,
+            "doc_id": doc_id
+        })
+    except Exception as e:
+        logger.error({
+            "message": "Failed to save data to Firestore",
+            "request_id": request_id,
+            "error": str(e)
+        })
+        return jsonify({"error": f"Failed to save data to Firestore: {str(e)}"}), 500
+
+    # Respond immediately with status 200, processing to be done asynchronously
+    return jsonify({"status": "Data stored, processing deferred"}), 200
+
+@app.route('/process-data-salesforce', methods=['POST'])
+def process_data_salesforce():
+    data = request.get_json()
+
+    # Ensure data is provided
+    if not data:
+        return jsonify({"error": "Invalid payload"}), 400
+
+    # Parse job type and request ID from the payload
+    job_name = data.get("data", {}).get("jobType")
+    unique_project_key = data.get("data", {}).get("uniqueProjectKey", None)
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+    
+    request_id = f'{job_name}-{unique_project_key}-{timestamp}'
+
+    if not job_name:
+        logger.warning({
+            "message": "Job name not provided in payload",
+            "request_id": request_id
+        })
+        return jsonify({"error": "Job name not provided in payload"}), 200
+    try:
+        logger.info({
+            "message": "Storing data in Firestore",
+            "request_id": request_id,
+            "job_name": job_name
+        })
+        doc_id = save_to_firestore(data, job_name, "new", 'Salesforce')
         logger.info({
             "message": "Data stored in Firestore",
             "request_id": request_id,
