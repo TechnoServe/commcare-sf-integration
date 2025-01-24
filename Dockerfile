@@ -19,8 +19,8 @@ ENV GOOGLE_CLOUD_PROJECT="tns-coffee-data"
 
 # SF Production credentials
 ENV SF_PROD_USERNAME="ymugenga@pima.org"
-ENV SF_PROD_PASSWORD="microsoft19?"
-ENV SF_PROD_SECURITY_TOKEN="S0grZ2e3JLte18xfB7gfITFA"
+ENV SF_PROD_PASSWORD="microsoft19?."
+ENV SF_PROD_SECURITY_TOKEN="oV2rkDdQV2MTup929V4dIppF"
 
 
 # Change this to sandbox if you want to use SF **sandbox** for deployment of **production** for live data

@@ -91,11 +91,12 @@ def process_participant(data: dict, sf_connection):
     
     # 1. New Farmer Registration
     if survey_detail in ["New Farmer New Household", "New Farmer Existing Household"]:
+        print(data.get("form", {}).get("Household_Id")+"hhh")
         participant_fields = {
             # Relationships and Main IDs
             "TNS_Id__c": data.get("form", {}).get("Farmer_Id"),
             "Household__r":{
-                "Household_ID__c": data.get("form", {}).get("Household_Id")
+               "Household_ID__c": data.get("form", {}).get("Household_Id")
             },
             "Training_Group__c": data.get("form", {}).get("Training_Group_Id"),
             
@@ -105,7 +106,7 @@ def process_participant(data: dict, sf_connection):
             # Farmer Data
             "Farm_Size__c": data.get("form", {}).get("Number_of_Trees") or None,
             "Name": data.get("form", {}).get("First_Name"),
-            "Middle_Name__c": data.get("form", {}).get("Middle_Name") or None,
+            # "Middle_Name__c": data.get("form", {}).get("Middle_Name") or None,
             "Last_Name__c": data.get("form", {}).get("Last_Name"),
             "Age__c": data.get("form", {}).get("Age"),
             "Gender__c": data.get("form", {}).get("Gender"),
