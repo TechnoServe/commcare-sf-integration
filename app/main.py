@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 import asyncio
 from google.cloud import firestore
-from jobs import registration  # Import job modules
+from jobs import registration, attendance  # Import job modules
 from utils.firestore_client import save_to_firestore, update_firestore_status
 import os
 from simple_salesforce import Salesforce
@@ -87,7 +87,12 @@ def process_data():
 
 async def process_firestore_records():
     # Query records to send to SF. 10 Records at a time
-    docs = db.collection("job_statuses").where("status", "==", "new").where("job_name", "==", "Farmer Registration").limit(10).get()
+    docs = db.collection("job_statuses").where(
+        "status", "==", "new"
+    ).where(
+        "job_name", "in", ["Farmer Registration", "Attendance Full - Current Module"]
+    ).limit(1).get()
+
 
     processed_records = []
     for doc in docs:
@@ -108,6 +113,9 @@ async def process_firestore_records():
             # Check if the job is Farmer Registration
             if job_name == "Farmer Registration":
                 success, error = await registration.send_to_salesforce(data.get("data"), sf_connection)
+
+            elif job_name == "Attendance Full - Current Module":
+                success, error = await attendance.send_to_salesforce(data.get("data"), sf_connection)
 
             if success:
                 # If processing is successful, mark as completed
@@ -166,7 +174,13 @@ async def process_firestore():
 
 async def process_failed_records():
     # Query records to send to SF. 10 Records at a time
-    docs = db.collection("job_statuses").where("status", "==", "failed").where("run_retries", "<", 5).where("job_name", "==", "Farmer Registration").limit(10).get()
+    docs = db.collection("job_statuses").where(
+        "status", "==", "failed"
+    ).where(
+        "job_name", "in", ["Farmer Registration", "Attendance Full - Current Module"]
+    ).where(
+        "run_retries", "<", 8
+    ).limit(10).get()
 
     processed_records = []
     for doc in docs:
@@ -187,6 +201,8 @@ async def process_failed_records():
             # Check if the job is Farmer Registration
             if job_name == "Farmer Registration":
                 success, error = await registration.send_to_salesforce(data.get("data"), sf_connection)
+            elif job_name == "Attendance Full - Current Module":
+                success, error = await attendance.send_to_salesforce(data.get("data"), sf_connection)
 
             if success:
                 # If processing is successful, mark as completed
@@ -382,19 +398,19 @@ def status_count():
     try:
         status_count_dict = {}
 
-        new_docs = db.collection("job_statuses").where("status", "==", "new").where("job_name", "==", "Farmer Registration").count()
+        new_docs = db.collection("job_statuses").where("status", "==", "new").where("job_name", "==", "Attendance Full - Current Module").count()
 
-        completed_docs = db.collection("job_statuses").where("status", "==", "completed").where("job_name", "==", "Farmer Registration").count()
+        completed_docs = db.collection("job_statuses").where("status", "==", "completed").where("job_name", "==", "Attendance Full - Current Module").count()
 
         status_count_dict["completed"] = completed_docs.get()[0][0].value
         status_count_dict["new"] = new_docs.get()[0][0].value
 
         # Query for "processing" status
-        processing_docs = db.collection("job_statuses").where("status", "==", "processing").where("job_name", "==", "Farmer Registration").count()
+        processing_docs = db.collection("job_statuses").where("status", "==", "processing").where("job_name", "==", "Attendance Full - Current Module").count()
         status_count_dict["processing"] = processing_docs.get()[0][0].value
 
         # Query for "failed" status
-        failed_docs = db.collection("job_statuses").where("status", "==", "failed").where("job_name", "==", "Farmer Registration").count()
+        failed_docs = db.collection("job_statuses").where("status", "==", "failed").where("job_name", "==", "Attendance Full - Current Module").count()
         status_count_dict["failed"] = failed_docs.get()[0][0].value
 
         return jsonify({"status_counts": status_count_dict}), 200

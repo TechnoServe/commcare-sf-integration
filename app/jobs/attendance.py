@@ -18,6 +18,7 @@ async def send_to_salesforce(data: dict, sf_connection):
             "request_id": request_id,
             "error": str(e)
         })
+        return False, str(e)
 
     # Process attendance
     try:
@@ -32,6 +33,7 @@ async def send_to_salesforce(data: dict, sf_connection):
             "request_id": request_id,
             "error": str(e)
         })
+        return False, str(e)
 
     # Completion log
     logger.info({
@@ -39,4 +41,4 @@ async def send_to_salesforce(data: dict, sf_connection):
         "request_id": request_id
     })
 
-    return True
+    return True, None
