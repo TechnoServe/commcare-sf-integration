@@ -7,6 +7,9 @@ import os
 from simple_salesforce import Salesforce
 from dotenv import load_dotenv
 from utils.logging_config import logger  # Import the centralized logger
+import datetime
+import requests
+from jobs.salesforce_to_commcare import process_commcare_data
 
 load_dotenv()  # Load environment variables
 
@@ -40,6 +43,16 @@ def authenticate_salesforce():
             "error": str(e)
         })
         return None
+    
+def authenticate_commcare():
+    domain = os.getenv("CC_DOMAIN")
+    apikey = os.getenv("CC_API_KEY")
+    username = os.getenv("CC_USERNAME")
+    auth = (username, apikey)
+    url = f'https://www.commcarehq.org/a/{domain}/receiver/GCP_Forms/'
+    headers = {'Authorization': 'ApiKey ' + f'{username}:{apikey}',
+               "Content-Type": "text/xml"}
+    return url, headers
 
 # Initialize Salesforce connection
 sf_connection = authenticate_salesforce()
@@ -68,7 +81,48 @@ def process_data():
             "request_id": request_id,
             "job_name": job_name
         })
-        doc_id = save_to_firestore(data, job_name, "new")
+        doc_id = save_to_firestore(data, job_name, "new", 'CommCare')
+        logger.info({
+            "message": "Data stored in Firestore",
+            "request_id": request_id,
+            "doc_id": doc_id
+        })
+    except Exception as e:
+        logger.error({
+            "message": "Failed to save data to Firestore",
+            "request_id": request_id,
+            "error": str(e)
+        })
+        return jsonify({"error": f"Failed to save data to Firestore: {str(e)}"}), 500
+
+    # Respond immediately with status 200, processing to be done asynchronously
+    return jsonify({"status": "Data stored, processing deferred"}), 200
+
+@app.route('/process-data-salesforce', methods=['POST'])
+def process_data_salesforce():
+    data = request.get_json()
+
+    # Ensure data is provided
+    if not data:
+        return jsonify({"error": "Invalid payload"}), 400
+
+    # Parse job type and request ID from the payload
+    job_name = data.get("jobType")
+    request_id = data.get("id")
+
+    if not job_name:
+        logger.warning({
+            "message": "Job name not provided in payload",
+            "request_id": request_id
+        })
+        return jsonify({"error": "Job name not provided in payload"}), 200
+    try:
+        logger.info({
+            "message": "Storing data in Firestore",
+            "request_id": request_id,
+            "job_name": job_name
+        })
+        doc_id = save_to_firestore(data, job_name, "new", 'Salesforce')
         logger.info({
             "message": "Data stored in Firestore",
             "request_id": request_id,
@@ -281,11 +335,20 @@ def get_record(id):
         })
         return jsonify({"error": "Failed to fetch record", "details": str(e)}), 500
     
-@app.route('/retry/<id>', methods=['GET']) 
-async def retry_record(id):
+@app.route('/retry/<collection>/<id>', methods=['GET']) 
+async def retry_record(collection, id):
+    
+    collection_mapping = {
+        'job_statuses': {'destination': 'Salesforce', 'origin': 'CommCare'},
+        'salesforce_collection': {'destination': 'CommCare', 'origin': 'Salesforce'}
+    }
+    
+    # Use the mapping to set destination and origin, defaulting to None if the collection is not found
+    destination, origin = collection_mapping.get(collection, {'destination': None, 'origin': None}).values()
+    
     try:
         # Query Firestore for documents matching the given ID
-        docs = db.collection("job_statuses").where("data.id", "==", id).get()
+        docs = db.collection(collection).where("data.id", "==", id).get()
 
         if not docs:
             logger.info({
@@ -295,6 +358,7 @@ async def retry_record(id):
             return jsonify({"message": "No records found", "id": id}), 404
 
         # Process each document retrieved
+    
         for doc in docs:
             doc_id = doc.id
             data = doc.to_dict()
@@ -303,40 +367,47 @@ async def retry_record(id):
 
             try:
                 logger.info({
-                    "message": f"Retrying record with Request ID {request_id} to Salesforce",
+                    "message": f"Retrying record with Request ID {request_id} to {destination}",
                     "request_id": request_id,
                     "job_name": job_name
                 })
 
                 # Check the job type and call the appropriate processing function
+                
+                # 1. Participant Registration
                 if job_name == "Farmer Registration":
                     success, error = await registration.send_to_salesforce(data.get("data"), sf_connection)
+                    logger.info(f'Process was successful: {success}')
+                
+                # 2. Participant Send to CommCare  
+                elif job_name == "Participant":
+                    success, error = await process_commcare_data.process_participant(data.get("data"))
                     logger.info(f'Process was successful: {success}')
 
                 if success:
                     # If successful, update Firestore status to completed
-                    update_firestore_status(doc_id, "completed")
+                    update_firestore_status(doc_id, "completed", origin)
                     logger.info({
-                        "message": f"Processed successfully record with Request ID {request_id} to Salesforce",
+                        "message": f"Processed successfully record with Request ID {request_id} to {destination}",
                         "request_id": request_id,
                         "doc_id": doc_id,
                         "run_retries": data.get("run_retries", 0) + 1
                     })
                 else:
                     # If failed, update Firestore status to failed with error
-                    update_firestore_status(doc_id, "failed", {
+                    update_firestore_status(doc_id, "failed", origin, {
                         "error": error,
                         "run_retries": data.get("run_retries", 0) + 1
                     })
                     logger.error({
-                        "message": f"Failed to process record with Request ID {request_id} to Salesforce",
+                        "message": f"Failed to process record with Request ID {request_id} to {destination}",
                         "request_id": request_id,
                         "error": error
                     })
 
             except Exception as e:
                 # Handle any exceptions during processing
-                update_firestore_status(doc_id, "failed", {
+                update_firestore_status(doc_id, "failed", origin, {
                     "error": str(e),
                     "run_retries": data.get("run_retries", 0) + 1
                 })
