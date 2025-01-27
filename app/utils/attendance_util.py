@@ -12,6 +12,7 @@ def process_training_session(data: dict, sf_connection):
     training_group_id = data.get("form", {}).get("Training_Group_Id")
     training_group_exists_flag = True
     if environment.lower() == "sandbox" and training_group_id:
+        print(training_group_exists(sf_connection, training_group_id))
         if training_group_exists(sf_connection, training_group_id) is False:
             training_group_id = 'a0JOj00000EeZqeMAF'
 
@@ -35,23 +36,40 @@ def process_training_session(data: dict, sf_connection):
     # 2. Process for Attendance Light
     else:
         if form_name == 'Attendance Full - Current Module':
-            record = {
-                "Trainer__c": data.get("form", {}).get("trainer"),
-                "Number_in_Attendance__c": data.get("form", {}).get("attendance_count"),
-                "Session_Photo_URL__c": get_photo_url(data),
-                "Date__c": data.get("form", {}).get("date"),
-                "Location_GPS__Latitude__s": get_gps_part(data.get("form", {}).get("gps_coordinates"), 0),
-                "Location_GPS__Longitude__s": get_gps_part(data.get("form", {}).get("gps_coordinates"), 1),
-                "Altitude__c": get_gps_part(data.get("form", {}).get("gps_coordinates"), 2),
-            }
 
-            upsert_to_salesforce(
-                "Training_Session__c",
-                "CommCare_Case_Id__c",
-                data.get("form", {}).get("training_session"),
-                record,
-                sf_connection
-            )
+             # Determine if Training Group exists (only for sandbox)
+            training_session_id = data.get("form", {}).get("training_session")
+            if training_session_id:
+                if training_session_exists(sf_connection, training_session_id) is False:    
+                    record = {
+                        "Trainer__c": data.get("form", {}).get("trainer"),
+                        "Number_in_Attendance__c": data.get("form", {}).get("attendance_count"),
+                        "Session_Photo_URL__c": get_photo_url(data),
+                        "Date__c": data.get("form", {}).get("date"),
+                        "Location_GPS__Latitude__s": get_gps_part(data.get("form", {}).get("gps_coordinates"), 0),
+                        "Location_GPS__Longitude__s": get_gps_part(data.get("form", {}).get("gps_coordinates"), 1),
+                        "Altitude__c": get_gps_part(data.get("form", {}).get("gps_coordinates"), 2),
+                        "Training_Group__c": 'a0JOj00000EeZqeMAF'
+                    }
+
+                else:
+                    record = {
+                        "Trainer__c": data.get("form", {}).get("trainer"),
+                        "Number_in_Attendance__c": data.get("form", {}).get("attendance_count"),
+                        "Session_Photo_URL__c": get_photo_url(data),
+                        "Date__c": data.get("form", {}).get("date"),
+                        "Location_GPS__Latitude__s": get_gps_part(data.get("form", {}).get("gps_coordinates"), 0),
+                        "Location_GPS__Longitude__s": get_gps_part(data.get("form", {}).get("gps_coordinates"), 1),
+                        "Altitude__c": get_gps_part(data.get("form", {}).get("gps_coordinates"), 2),
+                    }
+
+                upsert_to_salesforce(
+                    "Training_Session__c",
+                    "CommCare_Case_Id__c",
+                    training_session_id,
+                    record,
+                    sf_connection
+                )
 
     
 def process_attendance(data: dict, sf_connection):
@@ -126,7 +144,14 @@ def process_attendance(data: dict, sf_connection):
                     sf_connection
                 )
                 
-
+def training_session_exists(sf_connection, training_session_id):
+        """Check if the Training Group exists in Salesforce."""
+        try:
+            response = sf_connection.Training_Session__c.get(training_session_id)
+            return response is not None
+        except Exception:
+            return False
+        
 # Helper function to calculate photo URL
 def get_photo_url(state):
     photo = state.get("form", {}).get("photo")

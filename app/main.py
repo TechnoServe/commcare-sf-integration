@@ -145,7 +145,7 @@ async def process_firestore_records():
         "status", "==", "new"
     ).where(
         "job_name", "in", ["Farmer Registration", "Attendance Full - Current Module"]
-    ).limit(1).get()
+    ).limit(10).get()
 
 
     processed_records = []
@@ -162,7 +162,7 @@ async def process_firestore_records():
                 "doc_id": doc_id
             })
 
-            update_firestore_status(doc_id, "processing")  # Set status to "processing" before handling the record
+            update_firestore_status(doc_id, "processing", "CommCare")  # Set status to "processing" before handling the record
 
             # Check if the job is Farmer Registration
             if job_name == "Farmer Registration":
@@ -173,7 +173,7 @@ async def process_firestore_records():
 
             if success:
                 # If processing is successful, mark as completed
-                update_firestore_status(doc_id, "completed")
+                update_firestore_status(doc_id, "completed", "CommCare")
                 processed_records.append(doc_id)
                 logger.info({
                     "message": f"Processed successfully record with Request ID {request_id} to Salesforce",
@@ -182,7 +182,7 @@ async def process_firestore_records():
                 })
             else:
                 # If failed, mark record as failed with the error
-                update_firestore_status(doc_id, "failed", {"error": error})
+                update_firestore_status(doc_id, "failed", "CommCare", {"error": error})
                 logger.error({
                     "message": f"Failed to process record with Request ID {request_id} to Salesforce",
                     "request_id": request_id,
@@ -192,7 +192,7 @@ async def process_firestore_records():
 
         except Exception as e:
             # In case of error, mark as failed and log the error
-            update_firestore_status(doc_id, "failed", {"error": str(e)})
+            update_firestore_status(doc_id, "failed", "CommCare", {"error": str(e)})
             logger.error({
                 "message": f"Error processing record with Request ID {request_id} to Salesforce",
                 "request_id": request_id,
@@ -233,7 +233,7 @@ async def process_failed_records():
     ).where(
         "job_name", "in", ["Farmer Registration", "Attendance Full - Current Module"]
     ).where(
-        "run_retries", "<", 8
+        "run_retries", "<", 10
     ).limit(10).get()
 
     processed_records = []
@@ -250,7 +250,7 @@ async def process_failed_records():
                 "doc_id": doc_id
             })
 
-            update_firestore_status(doc_id, "processing")  # Set status to "processing" before handling the record
+            update_firestore_status(doc_id, "processing", "CommCare")  # Set status to "processing" before handling the record
 
             # Check if the job is Farmer Registration
             if job_name == "Farmer Registration":
@@ -260,7 +260,7 @@ async def process_failed_records():
 
             if success:
                 # If processing is successful, mark as completed
-                update_firestore_status(doc_id, "completed")
+                update_firestore_status(doc_id, "completed", "CommCare")
                 processed_records.append(doc_id)
                 logger.info({
                     "message": f"Processed successfully record with Request ID {request_id} to Salesforce",
@@ -269,7 +269,7 @@ async def process_failed_records():
                 })
             else:
                 # If failed, mark record as failed with the error
-                update_firestore_status(doc_id, "failed", {"error": error, "run_retries": data.get("run_retries", 0) + 1})
+                update_firestore_status(doc_id, "failed", "CommCare", {"error": error, "run_retries": data.get("run_retries", 0) + 1})
                 logger.error({
                     "message": f"Failed to process record with Request ID {request_id} to Salesforce",
                     "request_id": request_id,
@@ -279,7 +279,7 @@ async def process_failed_records():
 
         except Exception as e:
             # In case of error, mark as failed and log the error
-            update_firestore_status(doc_id, "failed", {"error": str(e), "run_retries": data.get("run_retries", 0) + 1})
+            update_firestore_status(doc_id, "failed", "CommCare", {"error": str(e), "run_retries": data.get("run_retries", 0) + 1})
             logger.error({
                 "message": f"Error processing record with Request ID {request_id} to Salesforce",
                 "request_id": request_id,
