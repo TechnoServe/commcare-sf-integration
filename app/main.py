@@ -48,7 +48,6 @@ def authenticate_commcare():
     domain = os.getenv("CC_DOMAIN")
     apikey = os.getenv("CC_API_KEY")
     username = os.getenv("CC_USERNAME")
-    auth = (username, apikey)
     url = f'https://www.commcarehq.org/a/{domain}/receiver/GCP_Forms/'
     headers = {'Authorization': 'ApiKey ' + f'{username}:{apikey}',
                "Content-Type": "text/xml"}
@@ -297,7 +296,6 @@ async def retry_firestore_records():
         })
         return jsonify({"error": f"Error retrying Firestore records: {str(e)}"}), 500
 
-
 @app.route('/record/<id>', methods=['GET'])
 def get_record(id):
     try:
@@ -414,7 +412,6 @@ async def retry_record(collection, id):
         })
         return jsonify({"error": "Failed to retry records", "details": str(e)}), 500
 
-
 @app.route('/failed', methods=['GET'])
 def get_failed_jobs():
     """
@@ -446,8 +443,6 @@ def get_failed_jobs():
         # Return an error response
         return jsonify({"error": f"Error retrieving failed jobs: {str(e)}"}), 500
 
-
-
 @app.route('/status-count', methods=['GET'])
 def status_count():
     try:
@@ -476,7 +471,6 @@ def status_count():
             "error": str(e)
         })
         return jsonify({"error": f"Error retrieving status count: {str(e)}"}), 500
-
-
+    
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080, debug=True)

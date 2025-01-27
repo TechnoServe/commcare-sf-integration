@@ -106,7 +106,7 @@ def process_participant(data: dict, sf_connection):
             # Farmer Data
             "Farm_Size__c": data.get("form", {}).get("Number_of_Trees") or None,
             "Name": data.get("form", {}).get("First_Name"),
-            # "Middle_Name__c": data.get("form", {}).get("Middle_Name") or None,
+            "Middle_Name__c": data.get("form", {}).get("Middle_Name", None) or None,
             "Last_Name__c": data.get("form", {}).get("Last_Name"),
             "Age__c": data.get("form", {}).get("Age"),
             "Gender__c": data.get("form", {}).get("Gender"),
