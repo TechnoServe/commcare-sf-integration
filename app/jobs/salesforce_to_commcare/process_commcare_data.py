@@ -1,6 +1,6 @@
 import datetime
 import requests
-from utils.logging_config import logger  # Import the centralized logger
+from utils.logging_config import logger
 from main import authenticate_commcare
 from utils.generate_xml import generate_xml
 
