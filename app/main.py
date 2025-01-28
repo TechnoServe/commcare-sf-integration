@@ -90,12 +90,20 @@ def process_data(origin_url_parameter):
             "request_id": request_id,
             "job_name": job_name
         })
-        doc_id = save_to_firestore(data, job_name, "new", collection)
-        logger.info({
-            "message": "Data stored in Firestore",
-            "request_id": request_id,
-            "doc_id": doc_id
-        })
+        
+        if job_name in ["Farmer Registration", "Attendance Full - Current Module", 'Participant', 'Edit Farmer Details']:
+            doc_id = save_to_firestore(data, job_name, "new", collection)
+            logger.info({
+                "message": "Data stored in Firestore",
+                "request_id": request_id,
+                "doc_id": doc_id
+            })
+        else:
+            logger.info({
+                "message": "Skipping saving in firestore.",
+                "request_id": request_id
+            })
+            
     except Exception as e:
         logger.error({
             "message": "Failed to save data to Firestore",
@@ -134,7 +142,7 @@ async def process_firestore_records(collection):
             update_firestore_status(doc_id, "processing", collection)  # Set status to "processing" before handling the record
 
             # Check if the job is Farmer Registration
-            if job_name == "Farmer Registration" or job_name == "Edit Farmer Details":
+            if job_name in ["Farmer Registration", "Edit Farmer Details"]:
                 success, error = await registration.send_to_salesforce(data.get("data"), sf_connection)
 
             elif job_name == "Attendance Full - Current Module":
@@ -212,7 +220,7 @@ async def process_failed_records(collection):
     docs = db.collection(collection).where(
         "status", "==", "failed"
     ).where(
-        "job_name", "in", ["Farmer Registration", "Attendance Full - Current Module", "Participant"]
+        "job_name", "in", ["Farmer Registration", "Attendance Full - Current Module", "Participant", 'Edit Farmer Details']
     ).where(
         "run_retries", "<", 3
     ).limit(10).get()
@@ -236,7 +244,7 @@ async def process_failed_records(collection):
             update_firestore_status(doc_id, "processing", collection)  # Set status to "processing" before handling the record
 
             # Check if the job is Farmer Registration
-            if job_name == "Farmer Registration":
+            if job_name in ["Farmer Registration", "Edit Farmer Details"]:
                 success, error = await registration.send_to_salesforce(data.get("data"), sf_connection)
             elif job_name == "Attendance Full - Current Module":
                 success, error = await attendance.send_to_salesforce(data.get("data"), sf_connection)
@@ -369,7 +377,7 @@ async def retry_record(destination_url_parameter, id):
                 # Check the job type and call the appropriate processing function
                 
                 # 1. Participant Registration
-                if job_name == "Farmer Registration":
+                if job_name in ["Farmer Registration", "Edit Farmer Details"]:
                     success, error = await registration.send_to_salesforce(data.get("data"), sf_connection)
                     logger.info(f'Process was successful: {success}')
                 

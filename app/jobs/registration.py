@@ -202,7 +202,7 @@ def process_participant(data: dict, sf_connection):
                 "Phone_Number__c": data.get("form", {}).get("Phone_Number"),
                 "Number_of_Coffee_Plots__c": get_number_of_plots(data),
                 "Other_Id_Number__c": get_other_id_number(data),
-                "Updated_Date__c": data.get("form", {}).get("registration_date") or None,
+                "Updated_Date__c": data.get("form", {}).get("date") or None,
                 "Create_In_CommCare__c": False
             }
 
