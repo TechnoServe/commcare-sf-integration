@@ -112,7 +112,7 @@ async def process_firestore_records(collection):
     docs = db.collection(collection).where(
         "status", "==", "new"
     ).where(
-        "job_name", "in", ["Farmer Registration", "Attendance Full - Current Module", 'Participant']
+        "job_name", "in", ["Farmer Registration", "Attendance Full - Current Module", 'Participant', 'Edit Farmer Details']
     ).limit(1).get()
     
     destination = 'CommCare' if collection == 'salesforce_collection' else "Salesforce" if collection == 'commcare_collection' else None
@@ -134,7 +134,7 @@ async def process_firestore_records(collection):
             update_firestore_status(doc_id, "processing", collection)  # Set status to "processing" before handling the record
 
             # Check if the job is Farmer Registration
-            if job_name == "Farmer Registration":
+            if job_name in ["Farmer Registration", "Edit Farmer Details"]:
                 success, error = await registration.send_to_salesforce(data.get("data"), sf_connection)
 
             elif job_name == "Attendance Full - Current Module":
@@ -212,7 +212,7 @@ async def process_failed_records(collection):
     docs = db.collection(collection).where(
         "status", "==", "failed"
     ).where(
-        "job_name", "in", ["Farmer Registration", "Attendance Full - Current Module", "Participant"]
+        "job_name", "in", ["Farmer Registration", "Attendance Full - Current Module", "Participant", 'Edit Farmer Details']
     ).where(
         "run_retries", "<", 8
     ).limit(10).get()
@@ -236,7 +236,7 @@ async def process_failed_records(collection):
             update_firestore_status(doc_id, "processing", collection)  # Set status to "processing" before handling the record
 
             # Check if the job is Farmer Registration
-            if job_name == "Farmer Registration":
+            if job_name in ["Farmer Registration", "Edit Farmer Details"]:
                 success, error = await registration.send_to_salesforce(data.get("data"), sf_connection)
             elif job_name == "Attendance Full - Current Module":
                 success, error = await attendance.send_to_salesforce(data.get("data"), sf_connection)
@@ -369,7 +369,7 @@ async def retry_record(destination_url_parameter, id):
                 # Check the job type and call the appropriate processing function
                 
                 # 1. Participant Registration
-                if job_name == "Farmer Registration":
+                if job_name in ["Farmer Registration", "Edit Farmer Details"]:
                     success, error = await registration.send_to_salesforce(data.get("data"), sf_connection)
                     logger.info(f'Process was successful: {success}')
                 
@@ -476,19 +476,19 @@ def status_count(collection):
     try:
         status_count_dict = {}
 
-        new_docs = db.collection(collection).where("status", "==", "new").where("job_name", "in", ["Farmer Registration", "Attendance Full - Current Module", 'Participant']).count()
+        new_docs = db.collection(collection).where("status", "==", "new").where("job_name", "in", ["Farmer Registration", "Attendance Full - Current Module", 'Participant', 'Edit Farmer Details']).count()
 
-        completed_docs = db.collection(collection).where("status", "==", "completed").where("job_name", "in", ["Farmer Registration", "Attendance Full - Current Module", 'Participant']).count()
+        completed_docs = db.collection(collection).where("status", "==", "completed").where("job_name", "in", ["Farmer Registration", "Attendance Full - Current Module", 'Participant', 'Edit Farmer Details']).count()
 
         status_count_dict["completed"] = completed_docs.get()[0][0].value
         status_count_dict["new"] = new_docs.get()[0][0].value
 
         # Query for "processing" status
-        processing_docs = db.collection(collection).where("status", "==", "processing").where("job_name", "in", ["Farmer Registration", "Attendance Full - Current Module", 'Participant']).count()
+        processing_docs = db.collection(collection).where("status", "==", "processing").where("job_name", "in", ["Farmer Registration", "Attendance Full - Current Module", 'Participant', 'Edit Farmer Details']).count()
         status_count_dict["processing"] = processing_docs.get()[0][0].value
 
         # Query for "failed" status
-        failed_docs = db.collection(collection).where("status", "==", "failed").where("job_name", "in", ["Farmer Registration", "Attendance Full - Current Module", 'Participant']).count()
+        failed_docs = db.collection(collection).where("status", "==", "failed").where("job_name", "in", ["Farmer Registration", "Attendance Full - Current Module", 'Participant', 'Edit Farmer Details']).count()
         status_count_dict["failed"] = failed_docs.get()[0][0].value
 
         return jsonify({"status_counts": status_count_dict}), 200
