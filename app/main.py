@@ -7,7 +7,7 @@ import os
 from simple_salesforce import Salesforce
 from dotenv import load_dotenv
 from utils.logging_config import logger  # Import the centralized logger
-import datetime
+from datetime import datetime
 import requests
 from jobs.salesforce_to_commcare import process_commcare_data
 
@@ -43,7 +43,7 @@ def authenticate_salesforce():
             "error": str(e)
         })
         return None
-    
+
 def authenticate_commcare():
     domain = os.getenv("CC_DOMAIN")
     apikey = os.getenv("CC_API_KEY")
@@ -91,7 +91,8 @@ def process_data(origin_url_parameter):
             "job_name": job_name
         })
         
-        if job_name in ["Farmer Registration", "Attendance Full - Current Module", 'Participant', 'Edit Farmer Details']:
+        if job_name in ["Farmer Registration", "Attendance Full - Current Module", 'Participant', 'Edit Farmer Details', 
+                        "Training Group", "Training Session", "Project Role", "Household Sampling"]:
             doc_id = save_to_firestore(data, job_name, "new", collection)
             logger.info({
                 "message": "Data stored in Firestore",
@@ -117,11 +118,17 @@ def process_data(origin_url_parameter):
 
 async def process_firestore_records(collection):
     # Query records to send to SF. 10 Records at a time
+    
+    query_size = {"salesforce_collection": 1, 
+                  "commcare_collection": 10
+                  }
+    
     docs = db.collection(collection).where(
         "status", "==", "new"
     ).where(
-        "job_name", "in", ["Farmer Registration", "Attendance Full - Current Module", 'Participant', 'Edit Farmer Details']
-    ).limit(10).get()
+        "job_name", "in", ["Farmer Registration", "Attendance Full - Current Module", 'Participant', 'Edit Farmer Details', 
+                           "Training Group", "Training Session", "Project Role", "Household Sampling"]
+    ).limit(query_size.get(collection, 0)).get()
     
     destination = 'CommCare' if collection == 'salesforce_collection' else "Salesforce" if collection == 'commcare_collection' else None
 
@@ -148,8 +155,8 @@ async def process_firestore_records(collection):
             elif job_name == "Attendance Full - Current Module":
                 success, error = await attendance.send_to_salesforce(data.get("data"), sf_connection)
                 
-            elif job_name == "Participant":
-               success, error = await process_commcare_data.process_participant(data.get("data")) 
+            elif job_name in ["Participant", "Training Group", "Training Session", "Project Role", "Household Sampling"]:
+                success, error = await process_commcare_data.process_records_parallel(data.get("data"), job_name)  # Use the new parallel processing function
 
             if success:
                 # If processing is successful, mark as completed
@@ -194,19 +201,26 @@ async def process_firestore(destination_url_parameter):
     destination, origin, collection = mapping.get(destination_url_parameter.lower().strip(), {'destination': None, 'origin': None, 'collection': None}).values()
     
     try:
+        timeStart = datetime.now()
         logger.info({
-            "message": "Batch processing started from scheduler"
+            "message": "Batch processing started from scheduler",
+            "timeStart": str(timeStart)
         })
         
         # Assuming process_firestore_records is asynchronous and processes records in batches
         processed_records = await process_firestore_records(collection)
 
+        timeEnd = datetime.now()
+        
         logger.info({
             "message": "Batch processing completed",
-            "processed_records": processed_records
+            "processed_records": processed_records,
+            "timeEnd": str(timeEnd)
         })
+        
+        totalTime = ((timeEnd - timeStart).total_seconds())/60
 
-        return jsonify({"status": "Processing completed", "processed_records": processed_records}), 200
+        return jsonify({"status": "Processing completed", "processed_records": processed_records, "time_taken": f'{str(totalTime)} minutes'}), 200
 
     except Exception as e:
         logger.error({
@@ -217,13 +231,19 @@ async def process_firestore(destination_url_parameter):
 
 async def process_failed_records(collection):
     # Query records to send to SF. 10 Records at a time
+    
+    query_size = {"salesforce_collection": 1, 
+                  "commcare_collection": 10
+                  }
+    
     docs = db.collection(collection).where(
         "status", "==", "failed"
     ).where(
-        "job_name", "in", ["Farmer Registration", "Attendance Full - Current Module", "Participant", 'Edit Farmer Details']
+        "job_name", "in", ["Farmer Registration", "Attendance Full - Current Module", "Participant", 'Edit Farmer Details', 
+                           "Training Group", "Training Session", "Project Role", "Household Sampling"]
     ).where(
         "run_retries", "<", 3
-    ).limit(10).get()
+    ).limit(query_size.get(collection, 0)).get()
     
     destination = 'CommCare' if collection == 'salesforce_collection' else "Salesforce" if collection == 'commcare_collection' else None
 
@@ -248,8 +268,8 @@ async def process_failed_records(collection):
                 success, error = await registration.send_to_salesforce(data.get("data"), sf_connection)
             elif job_name == "Attendance Full - Current Module":
                 success, error = await attendance.send_to_salesforce(data.get("data"), sf_connection)
-            elif job_name == "Participant":
-               success, error = await process_commcare_data.process_participant(data.get("data")) 
+            elif job_name in ["Participant", "Training Group", "Training Session", "Project Role", "Household Sampling"]:
+                success, error = await process_commcare_data.process_records_parallel(data.get("data"), job_name)  # Use the new parallel processing function 
 
             if success:
                 # If processing is successful, mark as completed
@@ -378,12 +398,13 @@ async def retry_record(destination_url_parameter, id):
                 
                 # 1. Participant Registration
                 if job_name in ["Farmer Registration", "Edit Farmer Details"]:
+                    
                     success, error = await registration.send_to_salesforce(data.get("data"), sf_connection)
                     logger.info(f'Process was successful: {success}')
                 
                 # 2. Participant Send to CommCare  
-                elif job_name == "Participant":
-                    success, error = await process_commcare_data.process_participant(data.get("data"))
+                elif job_name in ["Participant", "Training Group", "Training Session", "Project Role", "Household Sampling"]:
+                    success, error = await process_commcare_data.process_records_parallel(data.get("data"), job_name)  # Use the new parallel processing function
                     logger.info(f'Process was successful: {success}')
                     
                 # 3. Attendance Full
@@ -484,19 +505,27 @@ def status_count(collection):
     try:
         status_count_dict = {}
 
-        new_docs = db.collection(collection).where("status", "==", "new").where("job_name", "in", ["Farmer Registration", "Attendance Full - Current Module", 'Participant', 'Edit Farmer Details']).count()
+        new_docs = db.collection(collection).where("status", "==", "new").where("job_name", "in", [
+            "Farmer Registration", "Attendance Full - Current Module", 'Participant', 'Edit Farmer Details', 
+            "Training Group", "Training Session", "Project Role", "Household Sampling"]).count()
 
-        completed_docs = db.collection(collection).where("status", "==", "completed").where("job_name", "in", ["Farmer Registration", "Attendance Full - Current Module", 'Participant', 'Edit Farmer Details']).count()
+        completed_docs = db.collection(collection).where("status", "==", "completed").where("job_name", "in", [
+            "Farmer Registration", "Attendance Full - Current Module", 'Participant', 'Edit Farmer Details',
+            "Training Group", "Training Session", "Project Role", "Household Sampling"]).count()
 
         status_count_dict["completed"] = completed_docs.get()[0][0].value
         status_count_dict["new"] = new_docs.get()[0][0].value
 
         # Query for "processing" status
-        processing_docs = db.collection(collection).where("status", "==", "processing").where("job_name", "in", ["Farmer Registration", "Attendance Full - Current Module", 'Participant', 'Edit Farmer Details']).count()
+        processing_docs = db.collection(collection).where("status", "==", "processing").where("job_name", "in", [
+            "Farmer Registration", "Attendance Full - Current Module", 'Participant', 'Edit Farmer Details', 
+            "Training Group", "Training Session", "Project Role", "Household Sampling"]).count()
         status_count_dict["processing"] = processing_docs.get()[0][0].value
 
         # Query for "failed" status
-        failed_docs = db.collection(collection).where("status", "==", "failed").where("job_name", "in", ["Farmer Registration", "Attendance Full - Current Module", 'Participant', 'Edit Farmer Details']).count()
+        failed_docs = db.collection(collection).where("status", "==", "failed").where("job_name", "in", [
+            "Farmer Registration", "Attendance Full - Current Module", 'Participant', 'Edit Farmer Details', 
+            "Training Group", "Training Session", "Project Role", "Household Sampling"]).count()
         status_count_dict["failed"] = failed_docs.get()[0][0].value
 
         return jsonify({"status_counts": status_count_dict}), 200

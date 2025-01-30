@@ -39,12 +39,11 @@ def process_observation(data: dict, sf_connection):
     )
 
 # 2. Process Observation Results Object - Participant Feedback
-# Will be using one single country's (Ethiopia) criteria since we can't filter by country in the TO CommCare form
 def process_observation_results_participant(data: dict, sf_connection):
     participant_feedback_criteria = {
-        'coffeeet_prepare_and_implement_agronomy_practice': 'Prepare_And_Implement_Agronomy_Practice', 
-        'coffeeet_teaching_clarity_and_effectiveness': 'Teaching_Clarity_And_Effectiveness', 
-        'coffeeet_knowledge_of_trainer_on_agronomy': 'Knowledge_Of_Trainer_On_Agronomy'
+        'coffee_prepare_and_implement_agronomy_practice': 'Prepare_And_Implement_Agronomy_Practice', 
+        'coffee_teaching_clarity_and_effectiveness': 'Teaching_Clarity_And_Effectiveness', 
+        'coffee_knowledge_of_trainer_on_agronomy': 'Knowledge_Of_Trainer_On_Agronomy'
         }
     for criteria, criteria_string in participant_feedback_criteria.items():
         
@@ -80,14 +79,14 @@ def process_observation_results_participant(data: dict, sf_connection):
 # 3. Process Observation Results Object - Observer Feedback
 def process_observation_results_observer(data: dict, sf_connection):
     observer_feedback_criteria = {
-        'coffeeet_shows_professionalism': 'Shows_Professionalism',
-        'coffeeet_is_prepared_and_organized': 'Is_Prepared_and_Organized',
-        'coffeeet_engages_participants': 'Engages_Participants',
-        'coffeeet_facilitates_openings_and_closings': 'Facilitates_Openings_and_Closings',
-        'coffeeet_leads_activities': 'Leads_Activities',
-        'coffeeet_leads_discussions': 'Leads_Discussions',
-        'coffeeet_follows_lesson_plans': 'Follows_Lesson_Plans',
-        'coffeeet_manages_time': 'Manages_Time'
+        'coffee_shows_professionalism': 'Shows_Professionalism',
+        'coffee_is_prepared_and_organized': 'Is_Prepared_and_Organized',
+        'coffee_engages_participants': 'Engages_Participants',
+        'coffee_facilitates_openings_and_closings': 'Facilitates_Openings_and_Closings',
+        'coffee_leads_activities': 'Leads_Activities',
+        'coffee_leads_discussions': 'Leads_Discussions',
+        'coffee_follows_lesson_plans': 'Follows_Lesson_Plans',
+        'coffee_manages_time': 'Manages_Time'
         }
     
     for criteria, criteria_string in observer_feedback_criteria.items():
