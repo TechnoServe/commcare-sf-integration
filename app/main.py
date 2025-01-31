@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 import asyncio
 from google.cloud import firestore
-from jobs import registration, attendance  # Import job modules
+from jobs import registration, attendance, training_observation  # Import job modules
 from utils.firestore_client import save_to_firestore, update_firestore_status
 import os
 from simple_salesforce import Salesforce
@@ -10,11 +10,20 @@ from utils.logging_config import logger  # Import the centralized logger
 from datetime import datetime
 import requests
 from jobs.salesforce_to_commcare import process_commcare_data
+import httpx
 
 load_dotenv()  # Load environment variables
 
 app = Flask(__name__)
 db = firestore.Client()
+
+migrated_form_types = [
+    "Farmer Registration", "Attendance Full - Current Module", 
+    'Edit Farmer Details', 'Training Observation', 
+    "Attendance Light - Current Module", 'Participant', 
+    "Training Group", "Training Session", "Project Role", 
+    "Household Sampling"
+    ]
 
 # Salesforce Authentication
 def authenticate_salesforce():
@@ -61,12 +70,17 @@ def process_data(origin_url_parameter):
     
     # The Collection is named after the origin of the data
     mapping = {
-        'cc': {'destination': 'Salesforce','origin': 'CommCare' , 'collection': 'commcare_collection'},
-        'sf': {'destination': 'CommCare', 'origin': 'Salesforce', 'collection': 'salesforce_collection'}
+        'cc': {'destination': 'Salesforce','origin': 'CommCare' , 'collection': 'commcare_collection', 'destination_url_parameter': 'sf'},
+        'sf': {'destination': 'CommCare', 'origin': 'Salesforce', 'collection': 'salesforce_collection','destination_url_parameter': 'cc'}
     }
     
     # Use the mapping to set destination and origin, defaulting to None if the collection is not found
-    destination, origin, collection = mapping.get(origin_url_parameter.lower().strip(), {'destination': None, 'origin': None, 'collection': None}).values()
+    destination, origin, collection, destination_url_parameter = mapping.get(origin_url_parameter.lower().strip(), {
+        'destination': None, 
+        'origin': None, 
+        'collection': None,
+        'destination_url_parameter': None
+        }).values()
     
     data = request.get_json()
 
@@ -77,6 +91,10 @@ def process_data(origin_url_parameter):
     # Parse job type and request ID from the payload
     job_name = data.get("form", {}).get("@name") if origin == 'CommCare' else data.get("jobType") if origin == "Salesforce" else None
     request_id = data.get("id")
+    
+    # Check for cases where survey_type is Attendance Light but job_name is followup
+    if job_name == "Followup" and data.get("form", {}).get("survey_type", "") == "Attendance Light":
+        job_name = "Attendance Light - Current Module"
 
     if not job_name:
         logger.warning({
@@ -91,14 +109,14 @@ def process_data(origin_url_parameter):
             "job_name": job_name
         })
         
-        if job_name in ["Farmer Registration", "Attendance Full - Current Module", 'Participant', 'Edit Farmer Details', 
-                        "Training Group", "Training Session", "Project Role", "Household Sampling"]:
+        if job_name in migrated_form_types:
             doc_id = save_to_firestore(data, job_name, "new", collection)
             logger.info({
                 "message": "Data stored in Firestore",
                 "request_id": request_id,
                 "doc_id": doc_id
             })
+            
         else:
             logger.info({
                 "message": "Skipping saving in firestore.",
@@ -116,6 +134,8 @@ def process_data(origin_url_parameter):
     # Respond immediately with status 200, processing to be done asynchronously
     return jsonify({"status": "Data stored, processing deferred"}), 200
 
+# Function to check the size of records from Salesforce to be able to process the record immediately
+
 async def process_firestore_records(collection):
     # Query records to send to SF. 10 Records at a time
     
@@ -126,8 +146,7 @@ async def process_firestore_records(collection):
     docs = db.collection(collection).where(
         "status", "==", "new"
     ).where(
-        "job_name", "in", ["Farmer Registration", "Attendance Full - Current Module", 'Participant', 'Edit Farmer Details', 
-                           "Training Group", "Training Session", "Project Role", "Household Sampling"]
+        "job_name", "in", migrated_form_types
     ).limit(query_size.get(collection, 0)).get()
     
     destination = 'CommCare' if collection == 'salesforce_collection' else "Salesforce" if collection == 'commcare_collection' else None
@@ -148,13 +167,19 @@ async def process_firestore_records(collection):
 
             update_firestore_status(doc_id, "processing", collection)  # Set status to "processing" before handling the record
 
-            # Check if the job is Farmer Registration
+            # 1. Farmer Registration and Update
             if job_name in ["Farmer Registration", "Edit Farmer Details"]:
                 success, error = await registration.send_to_salesforce(data.get("data"), sf_connection)
 
-            elif job_name == "Attendance Full - Current Module":
+            # 2. Attendance Light and Full
+            elif job_name in ["Attendance Full - Current Module", "Attendance Light - Current Module"]:
                 success, error = await attendance.send_to_salesforce(data.get("data"), sf_connection)
-                
+            
+            # 3. Training Observation    
+            elif job_name == "Training Observation":
+                success, error = await training_observation.send_to_salesforce(data.get("data"), sf_connection)
+            
+            # 4. Salesforce -> CommCare    
             elif job_name in ["Participant", "Training Group", "Training Session", "Project Role", "Household Sampling"]:
                 success, error = await process_commcare_data.process_records_parallel(data.get("data"), job_name)  # Use the new parallel processing function
 
@@ -239,8 +264,7 @@ async def process_failed_records(collection):
     docs = db.collection(collection).where(
         "status", "==", "failed"
     ).where(
-        "job_name", "in", ["Farmer Registration", "Attendance Full - Current Module", "Participant", 'Edit Farmer Details', 
-                           "Training Group", "Training Session", "Project Role", "Household Sampling"]
+        "job_name", "in", migrated_form_types
     ).where(
         "run_retries", "<", 3
     ).limit(query_size.get(collection, 0)).get()
@@ -263,11 +287,19 @@ async def process_failed_records(collection):
 
             update_firestore_status(doc_id, "processing", collection)  # Set status to "processing" before handling the record
 
-            # Check if the job is Farmer Registration
+            # 1. Farmer Registration and Update
             if job_name in ["Farmer Registration", "Edit Farmer Details"]:
                 success, error = await registration.send_to_salesforce(data.get("data"), sf_connection)
-            elif job_name == "Attendance Full - Current Module":
+            
+            # 2. Attendance Light & Full    
+            elif job_name in ["Attendance Full - Current Module", "Attendance Light - Current Module"]:
                 success, error = await attendance.send_to_salesforce(data.get("data"), sf_connection)
+            
+            # 3. Training Observation    
+            elif job_name == "Training Observation":
+                success, error = await training_observation.send_to_salesforce(data.get("data"), sf_connection)
+            
+            # 4. Salesforce -> CommCare    
             elif job_name in ["Participant", "Training Group", "Training Session", "Project Role", "Household Sampling"]:
                 success, error = await process_commcare_data.process_records_parallel(data.get("data"), job_name)  # Use the new parallel processing function 
 
@@ -398,7 +430,6 @@ async def retry_record(destination_url_parameter, id):
                 
                 # 1. Participant Registration
                 if job_name in ["Farmer Registration", "Edit Farmer Details"]:
-                    
                     success, error = await registration.send_to_salesforce(data.get("data"), sf_connection)
                     logger.info(f'Process was successful: {success}')
                 
@@ -407,10 +438,14 @@ async def retry_record(destination_url_parameter, id):
                     success, error = await process_commcare_data.process_records_parallel(data.get("data"), job_name)  # Use the new parallel processing function
                     logger.info(f'Process was successful: {success}')
                     
-                # 3. Attendance Full
-                elif job_name == "Attendance Full - Current Module":
+                # 3. Attendance Full & Light
+                elif job_name in ["Attendance Full - Current Module", "Attendance Light - Current Module"]:
                     success, error = await attendance.send_to_salesforce(data.get("data"), sf_connection)
                     logger.info(f'Process was successful: {success}')
+                
+                # 4. Training Observation
+                elif job_name == "Training Observation":
+                    success, error = await training_observation.send_to_salesforce(data.get("data"), sf_connection)
 
                 if success:
                     # If successful, update Firestore status to completed
@@ -505,27 +540,19 @@ def status_count(collection):
     try:
         status_count_dict = {}
 
-        new_docs = db.collection(collection).where("status", "==", "new").where("job_name", "in", [
-            "Farmer Registration", "Attendance Full - Current Module", 'Participant', 'Edit Farmer Details', 
-            "Training Group", "Training Session", "Project Role", "Household Sampling"]).count()
+        new_docs = db.collection(collection).where("status", "==", "new").where("job_name", "in", migrated_form_types).count()
 
-        completed_docs = db.collection(collection).where("status", "==", "completed").where("job_name", "in", [
-            "Farmer Registration", "Attendance Full - Current Module", 'Participant', 'Edit Farmer Details',
-            "Training Group", "Training Session", "Project Role", "Household Sampling"]).count()
+        completed_docs = db.collection(collection).where("status", "==", "completed").where("job_name", "in", migrated_form_types).count()
 
         status_count_dict["completed"] = completed_docs.get()[0][0].value
         status_count_dict["new"] = new_docs.get()[0][0].value
 
         # Query for "processing" status
-        processing_docs = db.collection(collection).where("status", "==", "processing").where("job_name", "in", [
-            "Farmer Registration", "Attendance Full - Current Module", 'Participant', 'Edit Farmer Details', 
-            "Training Group", "Training Session", "Project Role", "Household Sampling"]).count()
+        processing_docs = db.collection(collection).where("status", "==", "processing").where("job_name", "in", migrated_form_types).count()
         status_count_dict["processing"] = processing_docs.get()[0][0].value
 
         # Query for "failed" status
-        failed_docs = db.collection(collection).where("status", "==", "failed").where("job_name", "in", [
-            "Farmer Registration", "Attendance Full - Current Module", 'Participant', 'Edit Farmer Details', 
-            "Training Group", "Training Session", "Project Role", "Household Sampling"]).count()
+        failed_docs = db.collection(collection).where("status", "==", "failed").where("job_name", "in", migrated_form_types).count()
         status_count_dict["failed"] = failed_docs.get()[0][0].value
 
         return jsonify({"status_counts": status_count_dict}), 200

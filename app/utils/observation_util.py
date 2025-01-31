@@ -6,26 +6,26 @@ import os
 # Process functions for each Salesforce object
 
 # 1. Process Training Observation Object
-def process_observation(data: dict, sf_connection):
+def process_training_observation(data: dict, sf_connection):
     url_string = f'https://www.commcarehq.org/a/{data.get("domain")}/api/form/attachment/{data.get("form", {}).get("meta", {}).get("instanceID")}/'
-    gps_coordinates = data.get("form", {}).get("meta", {}).get("Location", {}).get("#Text")
+    gps_coordinates = data.get("form", {}).get("meta", {}).get("location", {}).get("#text", "")
     observation_fields = {
-        "Observer__c": data.get("form", {}).get("Observer"),
-        "Trainer__c": data.get("form", {}).get("trainer_salesforce_id"),
-        "Training_Group__c": data.get("form", {}).get("Which_Group_Is_Farmer_Trainer_Teaching"),
-        "Training_Session__c": data.get("form", {}).get("selected_session"),
-        "RecordTypeId": data.get("form", {}).get("Record_Type"),
-        "Date__c": data.get("form", {}).get("Date"),
-        "Male_Participants__c": int(data.get("form", {}).get("Current_session_participants", {}).get("Male_Participants_In_Attendance")),
-        "Female_Participants__c": int(data.get("form", {}).get("Current_session_participants", {}).get("Female_Participants_In_Attendance")),
-        "Number_of_Participants__c": int(data.get("form", {}).get("Current_session_participants", {}).get("Total_Participants_In_Attendance")),
-        "Shared_Action_Plan__c": data.get("form", {}).get("Feedback_And_Coaching_With_The_Farmer_Trainer", {}).get("Share_Action_Plan") or None,
-        "Shared_Action_Plan_Comments__c": data.get("form", {}).get("Feedback_And_Coaching_With_The_Farmer_Trainer", {}).get("Share_Action_Plan_Comments") or None,
-        "Did_Well__c": data.get("form", {}).get("Current_Session_Review", {}).get("Did_Well"),
-        "To_Improve__c": data.get("form", {}).get("Current_Session_Review", {}).get("To_Improve"),
-        "Photo_of_Facilitator_URL__c": url_string + data.get("form", {}).get("Photo"),
-        "Farmer_Trainer_Signature__c": url_string + data.get("form", {}).get("Farmer_Trainer_Signature_Section", {}).get("Farmer_Trainer_Signature"),
-        "Observer_Signature__c": url_string + data.get("form", {}).get("Observer_Signature_Section", {}).get("Observer_Signature"),
+        "Observer__c": data.get("form", {}).get("Observer", ""),
+        "Trainer__c": data.get("form", {}).get("trainer_salesforce_id", ""),
+        "Training_Group__c": data.get("form", {}).get("Which_Group_Is_Farmer_Trainer_Teaching", ""),
+        "Training_Session__c": data.get("form", {}).get("selected_session", ""),
+        "RecordTypeId": data.get("form", {}).get("Record_Type", ""),
+        "Date__c": data.get("form", {}).get("Date", ""),
+        "Male_Participants__c": int(data.get("form", {}).get("Current_session_participants", {}).get("Male_Participants_In_Attendance", "")),
+        "Female_Participants__c": int(data.get("form", {}).get("Current_session_participants", {}).get("Female_Participants_In_Attendance", "")),
+        "Number_of_Participants__c": int(data.get("form", {}).get("Current_session_participants", {}).get("Total_Participants_In_Attendance", "")),
+        "Shared_Action_Plan__c": data.get("form", {}).get("Feedback_And_Coaching_With_The_Farmer_Trainer", {}).get("Share_Action_Plan", "") or None,
+        "Shared_Action_Plan_Comments__c": data.get("form", {}).get("Feedback_And_Coaching_With_The_Farmer_Trainer", {}).get("Share_Action_Plan_Comments", "") or None,
+        "Did_Well__c": data.get("form", {}).get("Current_Session_Review", {}).get("Did_Well", ""),
+        "To_Improve__c": data.get("form", {}).get("Current_Session_Review", {}).get("To_Improve", ""),
+        "Photo_of_Facilitator_URL__c": url_string + data.get("form", {}).get("Photo", ""),
+        "Farmer_Trainer_Signature__c": url_string + data.get("form", {}).get("Farmer_Trainer_Signature_Section", {}).get("Farmer_Trainer_Signature", ""),
+        "Observer_Signature__c": url_string + data.get("form", {}).get("Observer_Signature_Section", {}).get("Observer_Signature", ""),
         "Observation_Location__Latitude__s": gps_coordinates.split(" ")[0],
         "Observation_Location__Longitude__s": gps_coordinates.split(" ")[1],
         "Altitude__c": gps_coordinates.split(" ")[2]
@@ -39,7 +39,7 @@ def process_observation(data: dict, sf_connection):
     )
 
 # 2. Process Observation Results Object - Participant Feedback
-def process_observation_results_participant(data: dict, sf_connection):
+def process_training_observation_results_participant(data: dict, sf_connection):
     participant_feedback_criteria = {
         'coffee_prepare_and_implement_agronomy_practice': 'Prepare_And_Implement_Agronomy_Practice', 
         'coffee_teaching_clarity_and_effectiveness': 'Teaching_Clarity_And_Effectiveness', 
@@ -58,15 +58,15 @@ def process_observation_results_participant(data: dict, sf_connection):
                 
             observation_results_fields = {
                 "Observation__r": {
-                    "Submission_ID__c": data.get("id")
+                    "Submission_ID__c": data.get("id", "")
                 },
                 "RecordTypeId": "01224000000gQe6AAE",
                 "Observation_Criterion__r": {
                     "Unique_Name__c": criteria
                 },
-                "Participant_Sex__c": data.get("form", {}).get(participant_string, {}).get("Participant_Gender"),
-                "Result__c": data.get("form", {}).get(participant_string, {}).get(criteria_string),
-                "Comments__c": data.get("form", {}).get(participant_string, {}).get("participant_comments"),
+                "Participant_Sex__c": data.get("form", {}).get(participant_string, {}).get("Participant_Gender", ""),
+                "Result__c": data.get("form", {}).get(participant_string, {}).get(criteria_string, ""),
+                "Comments__c": data.get("form", {}).get(participant_string, {}).get("participant_comments", ""),
             }
             upsert_to_salesforce(
                 "Observation_Result__c",
@@ -77,7 +77,7 @@ def process_observation_results_participant(data: dict, sf_connection):
             )
 
 # 3. Process Observation Results Object - Observer Feedback
-def process_observation_results_observer(data: dict, sf_connection):
+def process_training_observation_results_observer(data: dict, sf_connection):
     observer_feedback_criteria = {
         'coffee_shows_professionalism': 'Shows_Professionalism',
         'coffee_is_prepared_and_organized': 'Is_Prepared_and_Organized',
@@ -92,19 +92,19 @@ def process_observation_results_observer(data: dict, sf_connection):
     for criteria, criteria_string in observer_feedback_criteria.items():
         observation_results_fields = {
             'Observation__r': {
-                'Submission_ID__c': data.get('id')
+                'Submission_ID__c': data.get('id', '')
             },
             'RecordTypeId': '01224000000gQe7AAE',
             'Observation_Criterion__r': {
                 'Unique_Name__c': criteria
             },
-            'Result__c': data.get('form', {}).get('Ratings_and_Comments').get(criteria_string),
-            'Comments__c': data.get('form', {}).get('Ratings_and_Comments').get(f'{criteria_string}_Comments')
+            'Result__c': data.get('form', {}).get('Ratings_and_Comments', {}).get(criteria_string, ""),
+            'Comments__c': data.get('form', {}).get('Ratings_and_Comments', {}).get(f'{criteria_string}_Comments', "")
         }
         upsert_to_salesforce(
             "Observation_Result__c",
             "Submission_ID__c",
-            f'{data.get("id")}{criteria}',
+            f'{data.get("id", "")}{criteria}',
             observation_results_fields,
             sf_connection
         )
