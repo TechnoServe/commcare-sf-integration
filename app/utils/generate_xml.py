@@ -33,17 +33,17 @@ def generate_xml(job_name, data, project_unique_id):
                 <First_Name>{safe_escape(firstname)}</First_Name>
                 <Middle_Name>{safe_escape(middlename)}</Middle_Name>
                 <Last_Name>{safe_escape(lastname)}</Last_Name>
-                <Age>{safe_escape(data.get("participantAge", ""))}</Age>
+                <Age>{data.get("participantAge", "")}</Age>
                 <Gender>{safe_escape(data.get("participantGender", ""))}</Gender>
-                <Phone_Number>{safe_escape(data.get("participantPhoneNumber", ""))}</Phone_Number>
+                <Phone_Number>{data.get("participantPhoneNumber", "")}</Phone_Number>
                 <Farmer_Id>{safe_escape(data.get("tnsId", ""))}</Farmer_Id>
-                <Farmer_Number>{safe_escape(farmernumber)}</Farmer_Number>
-                <Cooperative_Membership_Number>{safe_escape(coopno)}</Cooperative_Membership_Number>
-                <Grower_Number>{safe_escape(grower_number)}</Grower_Number>
+                <Farmer_Number>{farmernumber}</Farmer_Number>
+                <Cooperative_Membership_Number>{coopno}</Cooperative_Membership_Number>
+                <Grower_Number>{grower_number}</Grower_Number>
                 <National_ID_Number>{safe_escape(national_id_number)}</National_ID_Number>
                 <Household_Id>{safe_escape(data.get("householdId", ""))}</Household_Id>
-                <Household_Number>{safe_escape(data.get("HHID", ""))}</Household_Number>
-                <Number_of_Trees>{safe_escape(data.get("householdFarmSize", ""))}</Number_of_Trees>
+                <Household_Number>{data.get("HHID", "")}</Household_Number>
+                <Number_of_Trees>{data.get("householdFarmSize", "")}</Number_of_Trees>
                 <Parent_Id>{safe_escape(data.get("trainingGroupId", ""))}</Parent_Id>
                 <Status>{safe_escape(data.get("status", ""))}</Status>
                 <Primary_Household_Member>{safe_escape(data.get("participantPrimaryHouseholdMember", ""))}</Primary_Household_Member>
@@ -60,17 +60,17 @@ def generate_xml(job_name, data, project_unique_id):
                         <n0:First_Name>{safe_escape(firstname)}</n0:First_Name>
                         <n0:Middle_Name>{safe_escape(middlename)}</n0:Middle_Name>
                         <n0:Last_Name>{safe_escape(lastname)}</n0:Last_Name>
-                        <n0:Age>{safe_escape(data.get("participantAge", ""))}</n0:Age>
+                        <n0:Age>{data.get("participantAge", "")}</n0:Age>
                         <n0:Gender>{safe_escape(data.get("participantGender", ""))}</n0:Gender>
-                        <n0:Phone_Number>{safe_escape(data.get("participantPhoneNumber", ""))}</n0:Phone_Number>
+                        <n0:Phone_Number>{data.get("participantPhoneNumber", "")}</n0:Phone_Number>
                         <n0:Farmer_Id>{safe_escape(data.get("tnsId", ""))}</n0:Farmer_Id>
-                        <n0:Farmer_Number>{safe_escape(farmernumber)}</n0:Farmer_Number>
-                        <n0:Cooperative_Membership_Number>{safe_escape(coopno)}</n0:Cooperative_Membership_Number>
-                        <n0:Grower_Number>{safe_escape(grower_number)}</n0:Grower_Number>
+                        <n0:Farmer_Number>{farmernumber}</n0:Farmer_Number>
+                        <n0:Cooperative_Membership_Number>{coopno}</n0:Cooperative_Membership_Number>
+                        <n0:Grower_Number>{grower_number}</n0:Grower_Number>
                         <n0:National_ID_Number>{safe_escape(national_id_number)}</n0:National_ID_Number>
                         <n0:Household_Id>{safe_escape(data.get("householdId", ""))}</n0:Household_Id>
-                        <n0:Household_Number>{safe_escape(data.get("HHID", ""))}</n0:Household_Number>
-                        <n0:Number_of_Trees>{safe_escape(data.get("householdFarmSize", ""))}</n0:Number_of_Trees>
+                        <n0:Household_Number>{data.get("HHID", "")}</n0:Household_Number>
+                        <n0:Number_of_Trees>{data.get("householdFarmSize", "")}</n0:Number_of_Trees>
                         <n0:Status>{safe_escape(data.get("status", ""))}</n0:Status>
                         <n0:Primary_Household_Member>{safe_escape(data.get("participantPrimaryHouseholdMember", ""))}</n0:Primary_Household_Member>
                         <n0:Name_Household_Concat>{safe_escape(fullname)} {safe_escape(data.get("HHID", ""))}-{safe_escape(farmernumber)}</n0:Name_Household_Concat>
@@ -101,9 +101,9 @@ def generate_xml(job_name, data, project_unique_id):
                 <City>{safe_escape(data.get("locationName", ""))}</City>
                 <Role>{safe_escape(data.get("roleForCommCare", ""))}</Role>
                 <Case_Id>{safe_escape(data.get("commCareCaseId", ""))}</Case_Id>
-                <Current_Module>{safe_escape(data.get("currentModule", ""))}</Current_Module>
+                <Current_Module>{data.get("currentModule", "")}</Current_Module>
                 <Current_Module_Name>{safe_escape(data.get("currentModuleName", ""))}</Current_Module_Name>
-                <Previous_Module>{safe_escape(data.get("previousModule", ""))}</Previous_Module>
+                <Previous_Module>{data.get("previousModule", "")}</Previous_Module>
                 <Previous_Module_Name>{safe_escape(data.get("previousModuleName", ""))}</Previous_Module_Name>
                 <FFGs_Observed/>
                 <Name_id_concat>{safe_escape(data.get("staffName", ""))} {safe_escape(data.get("tnsId", ""))}</Name_id_concat>
@@ -120,9 +120,9 @@ def generate_xml(job_name, data, project_unique_id):
                         <n0:Role>{safe_escape(data.get("roleForCommCare", ""))}</n0:Role>
                         <n0:City>{safe_escape(data.get("locationName", ""))}</n0:City>
                         <n0:TNS_Id>{safe_escape(data.get("tnsId", ""))}</n0:TNS_Id>
-                        <n0:Current_Module>{safe_escape(data.get("currentModule", ""))}</n0:Current_Module>
+                        <n0:Current_Module>{data.get("currentModule", "")}</n0:Current_Module>
                         <n0:Current_Module_Name>{safe_escape(data.get("currentModuleName", ""))}</n0:Current_Module_Name>
-                        <n0:Previous_Module>{safe_escape(data.get("previousModule", ""))}</n0:Previous_Module>
+                        <n0:Previous_Module>{data.get("previousModule", "")}</n0:Previous_Module>
                         <n0:Previous_Module_Name>{safe_escape(data.get("previousModuleName", ""))}</n0:Previous_Module_Name>
                         <n0:FFGs_Observed/>
                         <n0:Salesforce_Staff_Id>{safe_escape(data.get("staffId", ""))}</n0:Salesforce_Staff_Id>
@@ -148,7 +148,7 @@ def generate_xml(job_name, data, project_unique_id):
                 <Training_Group_Name>{safe_escape(data.get("trainingGroupName", ""))}</Training_Group_Name>
                 <Secondary_Parent_Id>{safe_escape(data.get("trainingGroupResponsibleStaff", ""))}</Secondary_Parent_Id>
                 <Module_Name>{safe_escape(data.get("trainingModuleName", ""))}</Module_Name>
-                <Module_Number>{safe_escape(data.get("trainingModuleNumber", ""))}</Module_Number>
+                <Module_Number>{data.get("trainingModuleNumber", "")}</Module_Number>
                 <Current_Previous_Name>({safe_escape(data.get("currentPrevious", ""))}) {safe_escape(data.get("trainingModuleName", ""))}</Current_Previous_Name>
                 <Training_Session_Name>{safe_escape(data.get("trainingModuleNumber", ""))} {safe_escape(data.get("trainingModuleName", ""))}</Training_Session_Name>
                 <Current_Previous>{safe_escape(data.get("currentPrevious", ""))}</Current_Previous>
@@ -200,7 +200,7 @@ def generate_xml(job_name, data, project_unique_id):
                 <Location>{safe_escape(data.get("locationName", ""))}</Location>
                 <Measurement_Group>{safe_escape(data.get("measurementGroup", ""))}</Measurement_Group>
                 <Cooperative_ID>{safe_escape(data.get("cooperative", ""))}</Cooperative_ID>
-                <Household_Counter>{safe_escape(data.get("householdCounter", ""))}</Household_Counter>
+                <Household_Counter>{data.get("householdCounter", "")}</Household_Counter>
                 <Name_Id_Concat>{safe_escape(data.get("trainingGroupName", ""))} {safe_escape(data.get("tnsId", ""))}</Name_Id_Concat>
                 <Parent_Id>{safe_escape(data.get("staffId", ""))}</Parent_Id>
                 <n0:case xmlns:n0="http://commcarehq.org/case/transaction/v2" case_id="{safe_escape(data.get("commCareCaseId", ""))}" date_modified="{safe_escape(datetime.now())}" user_id="e926526fc13b126fffdb6d001f25b269">
@@ -212,7 +212,7 @@ def generate_xml(job_name, data, project_unique_id):
                     <n0:update>
                         <n0:Location>{safe_escape(data.get("locationName", ""))}</n0:Location>
                         <n0:Market>{safe_escape(data.get("market", ""))}</n0:Market>
-                        <n0:Household_Counter>{safe_escape(data.get("householdCounter", ""))}</n0:Household_Counter>
+                        <n0:Household_Counter>{data.get("householdCounter", "")}</n0:Household_Counter>
                         <n0:Name_Id_Concat>{safe_escape(data.get("trainingGroupName", ""))} {safe_escape(data.get("tnsId", ""))}</n0:Name_Id_Concat>
                         <n0:Parent_Id>{safe_escape(data.get("staffId", ""))}</n0:Parent_Id>
                         <n0:FFG_Number>{safe_escape(data.get("tnsId", ""))}</n0:FFG_Number>
