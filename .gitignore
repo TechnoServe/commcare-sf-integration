@@ -2,7 +2,10 @@
 venv
 .env
 service-account-key.json
+service-account-key-test.json
 service-account-key-prod.json
+pima-gcp-3092e823c8ce.json
+application_default_credentials.json
 Dockerfile
 tns-coffee-data-dd3990b8535e.json
 **/__pycache__/
