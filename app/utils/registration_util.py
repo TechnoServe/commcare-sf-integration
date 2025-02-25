@@ -118,7 +118,7 @@ def process_household(data: dict, sf_connection):
         elif pr_registration:
             household_fields = {
                 "Name": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("Household_Number"),
-                "Farm_Size__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("Farm_Size"),
+                "Farm_Size__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("Farm_Size", None),
                 "Farm_Size_Before__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("farm_size_3_years_and_older"),
                 "Farm_Size_After__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("farm_size_under_3_years")
             }
@@ -243,7 +243,7 @@ def process_participant(data: dict, sf_connection):
                     "Household_ID__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("Household_Id")
                 },
                 "Training_Group__c": data.get("form", {}).get("Training_Group_Id", "") or None,
-                "Farm_Size__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("Farm_Size"),
+                "Farm_Size__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("Farm_Size", None),
                 "Farm_Size_Before__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("farm_size_3_years_and_older"),
                 "Farm_Size_After__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("farm_size_under_3_years"),
                 "Name": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("First_Name"),

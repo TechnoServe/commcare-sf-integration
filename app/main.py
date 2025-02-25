@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 import asyncio
 from google.cloud import firestore
+from google.cloud.firestore import FieldFilter
 from jobs import registration, attendance, training_observation  # Import job modules
 from utils.firestore_client import save_to_firestore, update_firestore_status
 import os
@@ -118,9 +119,10 @@ def process_data(origin_url_parameter):
             })
             
         else:
-            logger.info({
+            logger.warning({
                 "message": "Skipping saving in firestore.",
-                "request_id": request_id
+                "request_id": request_id,
+                "job_name": job_name
             })
             
     except Exception as e:
@@ -144,10 +146,9 @@ async def process_firestore_records(collection):
                   }
     
     docs = db.collection(collection).where(
-        "status", "==", "new"
-    ).where(
-        "job_name", "in", migrated_form_types
-    ).limit(query_size.get(collection, 0)).get()
+        filter=FieldFilter("status", "==", "new")).where(
+        filter=FieldFilter("job_name", "in", migrated_form_types)
+        ).limit(query_size.get(collection, 0)).get()
     
     destination = 'CommCare' if collection == 'salesforce_collection' else "Salesforce" if collection == 'commcare_collection' else None
 
@@ -262,12 +263,10 @@ async def process_failed_records(collection):
                   }
     
     docs = db.collection(collection).where(
-        "status", "==", "failed"
-    ).where(
-        "job_name", "in", migrated_form_types
-    ).where(
-        "run_retries", "<", 3
-    ).limit(query_size.get(collection, 0)).get()
+        filter=FieldFilter("status", "==", "failed")).where( 
+        filter=FieldFilter("job_name", "in", migrated_form_types)).where( 
+        filter=FieldFilter("run_retries", "<", 3)
+        ).limit(query_size.get(collection, 0)).get()
     
     destination = 'CommCare' if collection == 'salesforce_collection' else "Salesforce" if collection == 'commcare_collection' else None
 
@@ -291,7 +290,7 @@ async def process_failed_records(collection):
             if job_name in ["Farmer Registration", "Edit Farmer Details"]:
                 success, error = await registration.send_to_salesforce(data.get("data"), sf_connection)
             
-            # 2. Attendance Light & Full    
+            # 2. Attendance Light).where( Full    
             elif job_name in ["Attendance Full - Current Module", "Attendance Light - Current Module"]:
                 success, error = await attendance.send_to_salesforce(data.get("data"), sf_connection)
             
@@ -371,7 +370,7 @@ async def retry_firestore_records(destination_url_parameter):
 def get_record(collection, id):
 
     try:
-        docs = db.collection(collection).where("data.id", "==", id).get()
+        docs = db.collection(collection).where(filter=FieldFilter("data.id", "==", id)).get()
 
         if not docs:
             return jsonify({"message": f"No records found in {collection}", "id": id}), 404
@@ -402,7 +401,7 @@ async def retry_record(destination_url_parameter, id):
     
     try:
         # Query Firestore for documents matching the given ID
-        docs = db.collection(collection).where("data.id", "==", id).get()
+        docs = db.collection(collection).where(filter=FieldFilter("data.id", "==", id)).get()
 
         if not docs:
             logger.info({
@@ -438,7 +437,7 @@ async def retry_record(destination_url_parameter, id):
                     success, error = await process_commcare_data.process_records_parallel(data.get("data"), job_name)  # Use the new parallel processing function
                     logger.info(f'Process was successful: {success}')
                     
-                # 3. Attendance Full & Light
+                # 3. Attendance Full).where( Light
                 elif job_name in ["Attendance Full - Current Module", "Attendance Light - Current Module"]:
                     success, error = await attendance.send_to_salesforce(data.get("data"), sf_connection)
                     logger.info(f'Process was successful: {success}')
@@ -509,7 +508,7 @@ def get_failed_jobs(destination_url_parameter):
     
     try:
         # Query Firestore for documents with status 'failed', limited to 5
-        processing_docs = db.collection(collection).where("status", "==", "failed").limit(5).get()
+        processing_docs = db.collection(collection).where(filter=FieldFilter("status", "==", "failed")).limit(5).get()
 
         # Extract relevant fields from Firestore documents
         failed_jobs = [
@@ -540,20 +539,20 @@ def status_count(collection):
     try:
         status_count_dict = {}
 
-        new_docs = db.collection(collection).where("status", "==", "new").where("job_name", "in", migrated_form_types).count()
+        new_docs = db.collection(collection).where(filter=FieldFilter("status", "==", "new")).where(filter=FieldFilter("job_name", "in", migrated_form_types)).count()
 
-        completed_docs = db.collection(collection).where("status", "==", "completed").where("job_name", "in", migrated_form_types).count()
+        completed_docs = db.collection(collection).where(filter=FieldFilter("status", "==", "completed")).where(filter=FieldFilter("job_name", "in", migrated_form_types)).count()
 
-        status_count_dict["completed"] = completed_docs.get()[0][0].value
-        status_count_dict["new"] = new_docs.get()[0][0].value
+        status_count_dict["completed"] = int(completed_docs.get()[0][0].value)
+        status_count_dict["new"] = int(new_docs.get()[0][0].value)
 
         # Query for "processing" status
-        processing_docs = db.collection(collection).where("status", "==", "processing").where("job_name", "in", migrated_form_types).count()
-        status_count_dict["processing"] = processing_docs.get()[0][0].value
+        processing_docs = db.collection(collection).where(filter=FieldFilter("status", "==", "processing")).where(filter=FieldFilter("job_name", "in", migrated_form_types)).count()
+        status_count_dict["processing"] = int(processing_docs.get()[0][0].value)
 
         # Query for "failed" status
-        failed_docs = db.collection(collection).where("status", "==", "failed").where("job_name", "in", migrated_form_types).count()
-        status_count_dict["failed"] = failed_docs.get()[0][0].value
+        failed_docs = db.collection(collection).where(filter=FieldFilter("status", "==", "failed")).where(filter=FieldFilter("job_name", "in", migrated_form_types)).count()
+        status_count_dict["failed"] = int(failed_docs.get()[0][0].value)
 
         return jsonify({"status_counts": status_count_dict}), 200
 

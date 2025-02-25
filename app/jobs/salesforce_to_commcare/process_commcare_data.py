@@ -5,11 +5,12 @@ import requests
 from utils.logging_config import logger
 from main import authenticate_commcare
 from utils.generate_xml import generate_xml
+import xml.etree.ElementTree as ET
 
-async def process_record(job_name, record, project_unique_id, record_number, processed_counter, session, url, headers, semaphore):
+async def process_record(job_name, job_id, record, project_unique_id, record_number, processed_counter, session, url, headers, semaphore):
     async with semaphore:
         try:
-            xml_string = generate_xml(job_name, record, project_unique_id)
+            xml_string = generate_xml(job_name, job_id, record, project_unique_id)
             
             success, error = await send_to_commcare(xml_string, session, url, headers)
             if success:
@@ -34,6 +35,7 @@ async def process_records_parallel(data, job_name):
     }.get(job_name, None)
     
     records = data.get(records_name, [])
+    job_id = data.get("id", "")
     processed_counter = [0]
     start_time = datetime.now()
     url, headers = authenticate_commcare()
@@ -43,7 +45,7 @@ async def process_records_parallel(data, job_name):
         tasks = []
         for idx, record in enumerate(records, start=1):
             task = process_record(
-                job_name, record, project_unique_id, idx, processed_counter, session, url, headers, semaphore
+                job_name, job_id, record, project_unique_id, idx, processed_counter, session, url, headers, semaphore
             )
             tasks.append(task)
         
@@ -64,17 +66,43 @@ async def send_to_commcare(data, session, url, headers):
     try:
         async with session.post(url=url, data=data, headers=headers) as response:
             response_text = await response.text()
-            if response.status == 201:
+            response_nature, response_message = extract_xml_response(response_text)
+            
+            if response.status == 201 and response_nature == "submit_success":
                 logger.info(f"Form submitted successfully! HTTP Status: {response.status}")
-                logger.info(f"Response: {response_text}")
+                logger.info(f"Response nature: '{response_nature}', message: '{response_message}'")
                 return True, None
             else:
                 logger.error(f"Failed to submit form. HTTP Status: {response.status}")
-                logger.error(f"Response: {response_text}")
-                return False, f'HTTP Status: {response.status}'
+                logger.error(f"Response nature: '{response_nature}', message: '{response_message}'")
+                return False, f"HTTP Status: {response.status}, message: '{response_message}'"
     except Exception as e:
         logger.error(f"An error occurred: {str(e)}")
         return False, f"An error occurred: {str(e)}"
+    
+def extract_xml_response(xml_response):
+    try:
+        # Parse the XML response
+        root = ET.fromstring(xml_response)
+
+        # Define the namespace
+        namespace = {'ns': 'http://openrosa.org/http/response'}
+
+        # Find the 'message' element
+        message_element = root.find('.//ns:message', namespace)
+
+        if message_element is None:
+            return None, "No message found"
+
+        # Extract the 'nature' attribute and the text content safely
+        message_nature = message_element.get('nature', "unknown")  # Avoid KeyError
+        message = message_element.text or ""  # Handle NoneType safely
+        
+        return message_nature, message
+    except ET.ParseError:
+        logger.error("Failed to parse XML response")
+        return None, "Invalid XML response"
+
         
         
 

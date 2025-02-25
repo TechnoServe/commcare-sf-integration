@@ -23,7 +23,7 @@ def safe_int(value):
             # If both conversions fail, return an empty string
             return ""
 
-def generate_xml(job_name, data, project_unique_id):
+def generate_xml(job_name, job_id, data, project_unique_id):
     
     if job_name == 'Participant':
         first_time_stamp = datetime.now()
@@ -106,6 +106,7 @@ def generate_xml(job_name, data, project_unique_id):
                     <n1:timeEnd>{safe_escape(datetime.now())}</n1:timeEnd>
                     <n1:username>api</n1:username>
                     <n1:userID>e926526fc13b126fffdb6d001f25b269</n1:userID>
+                    <n1:jobID>{job_id}</n1:jobID>
                 </n1:meta>
             </data>
             '''
@@ -153,6 +154,7 @@ def generate_xml(job_name, data, project_unique_id):
                     <n1:timeEnd>{safe_escape(datetime.now())}</n1:timeEnd>
                     <n1:username>api</n1:username>
                     <n1:userID>e926526fc13b126fffdb6d001f25b269</n1:userID>
+                    <n1:jobID>{job_id}</n1:jobID>
                 </n1:meta>
             </data>
             '''
@@ -205,6 +207,7 @@ def generate_xml(job_name, data, project_unique_id):
                     <n2:timeEnd>{safe_escape(datetime.now())}</n2:timeEnd>
                     <n2:username>api</n2:username>
                     <n2:userID>e926526fc13b126fffdb6d001f25b269</n2:userID>
+                    <n2:jobID>{job_id}</n2:jobID>
                 </n2:meta>
             </data>
             '''
@@ -248,7 +251,8 @@ def generate_xml(job_name, data, project_unique_id):
                     <n2:timeStart>{safe_escape(first_time_stamp)}</n2:timeStart>
                     <n2:timeEnd>{safe_escape(datetime.now())}</n2:timeEnd>
                     <n2:username>api</n2:username>
-                <n2:userID>e926526fc13b126fffdb6d001f25b269</n2:userID>
+                    <n2:userID>e926526fc13b126fffdb6d001f25b269</n2:userID>
+                    <n2:jobID>{job_id}</n2:jobID>
                 </n2:meta>
             </data>
             '''
@@ -300,6 +304,7 @@ def generate_xml(job_name, data, project_unique_id):
                     <n1:timeEnd>{safe_escape(datetime.now())}</n1:timeEnd>
                     <n1:username>api</n1:username>
                     <n1:userID>e926526fc13b126fffdb6d001f25b269</n1:userID>
+                    <n1:jobID>{job_id}</n1:jobID>
                 </n1:meta>
             </data>
             '''
