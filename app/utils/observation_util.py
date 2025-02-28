@@ -108,3 +108,264 @@ def process_training_observation_results_observer(data: dict, sf_connection):
             observation_results_fields,
             sf_connection
         )
+        
+# 4. Process Demo Plot Observation
+def process_demoplot_observation(data: dict, sf_connection):
+    url_string = f'https://www.commcarehq.org/a/{data.get("domain")}/api/form/attachment/{data.get("form", {}).get("meta", {}).get("instanceID")}/'
+    gps_coordinates = data.get("form", {}).get("meta", {}).get("location", {}).get("#text", "")
+    observation_fields = {
+        "Observer__c": data.get("form", {}).get("observer", ""),
+        "Trainer__c": data.get("form", {}).get("trainer", ""),
+        "Training_Group__c": data.get("form", {}).get("training_group", ""),
+        "RecordTypeId": data.get("form", {}).get("record_type", ""),
+        "Date__c": data.get("form", {}).get("date", ""),
+        "Comments_1__c": data.get("form", {}).get("visit_comments", ""),
+        "Demo_Plot_Photo__c": url_string + data.get("form", {}).get("Demo_Plot_Photo", ""),
+        "Observer_Signature__c": url_string + data.get("form", {}).get("agronomy_advisor_signature", ""),
+        "Observation_Location__Latitude__s": gps_coordinates.split(" ")[0] or "",
+        "Observation_Location__Longitude__s": gps_coordinates.split(" ")[1] or "",
+        "Altitude__c": gps_coordinates.split(" ")[2] or ""
+    }
+    upsert_to_salesforce(
+        "Observation__c",
+        "Submission_ID__c",
+        data.get("id"),
+        observation_fields,
+        sf_connection
+    )
+
+# 5. Process Demo Plot Observation Results  
+def process_demoplot_observation_results(data: dict, sf_connection):
+    url_string = f'https://www.commcarehq.org/a/{data.get("domain")}/api/form/attachment/{data.get("form", {}).get("meta", {}).get("instanceID")}/'
+    gps_coordinates = data.get("form", {}).get("meta", {}).get("location", {}).get("#text", "")
+    best_practice_string = data.get("form", {}).get("best_practice_questions", {})
+    app_id = data.get("app_id", "")
+    
+    # We'll be using these somewhere to filter out the results. ET projects have different values from the rest of the countries.
+    ethiopian_app_ids = [
+        "521097abbcfd4fa79668cb6ca3dca28a", # Regrow 2025
+        "dd10fc19040d40f0be48a447e1d2727c", # Regrow 2024
+        "d63cdcf6b9d849548413ca356871cd3a", # JCP 2023
+        "0c9b5791828b4baea6c1eaa4d6979c5a", # CREW 2025
+        "f079b0daae1d4d34a89e331dc5a72fbd" # CREW 2024
+    ]
+
+    best_practice_criteria_single = {
+        # 1. Compost
+        "coffee_global__compost_heap": {
+            "Result__c": best_practice_string.get("compost_heap", {}).get("present_compost_heap", "") if app_id in ethiopian_app_ids else
+            {
+                "1": "Yes, compost or manure heap seen",
+                "0": "No compost or manure heap seen"
+            }.get(best_practice_string.get("compost_heap", {}).get("present_compost_heap", ""), ""),
+            "Compost_Photo__c": url_string + best_practice_string.get("compost_heap", {}).get("compost_heap_photo", "")
+        },
+        
+        # 2. Mulch
+        "coffee_global__mulch" :{
+            "Result__c": best_practice_string.get("mulch", {}).get("mulch_under_the_canopy", "") if app_id in ethiopian_app_ids else
+            {
+                "1": "Yes, Some mulch seen",
+                "0": "No mulch seen"
+            }.get(best_practice_string.get("mulch", {}).get("mulch_under_the_canopy", ""), ""),
+            "Result_Text__c": best_practice_string.get("mulch", {}).get("thickness_of_mulch", "") if app_id in ethiopian_app_ids else
+            {
+                "1": "Soil can be seen clearly, less than 2cm of mulch",
+                "2": "Soil can not be seen, more than 2cm of mulch"
+            }.get(best_practice_string.get("mulch", {}).get("thickness_of_mulch", ""), "")
+        },
+        
+        # 3. Shade Management
+        "coffee_global__shade_management":{
+            "Result__c": best_practice_string.get("shade_management", {}).get("level_of_shade_present", "") if app_id in ethiopian_app_ids else
+            {
+                "0": "NO shade, less than 5%",
+                "1": "Light shade, 5 to 20%",
+                "2": "Medium shade, 20 to 40%",
+                "3": "Heavy shade, over 40%"
+            }.get(best_practice_string.get("shade_management", {}).get("level_of_shade_present", ""), ""),
+            "Shade_Management_Photo__c": url_string + best_practice_string.get("shade_management", {}).get("shade_management_photo", "")
+        },
+        
+        # 4. Vetiver
+        "coffee_global__vetiver_planted":{
+            "Result__c": best_practice_string.get("vetiver", {}).get("vetiver_planted", "") if app_id in ethiopian_app_ids else
+            {
+                "1": "Yes. Row of vetiver planted",
+                "0": "No. Vetiver not planted"
+            }.get(best_practice_string.get("vetiver", {}).get("vetiver_planted", ""), "")
+        },
+        
+        # 5. Weed Management
+        "coffee_global__weed_management":{
+            "Result__c": best_practice_string.get("weed_management", {}).get("has_the_demo_plot_been_dug", "") if app_id in ethiopian_app_ids else
+            {
+                "1": "Yes, field dug",
+                "0": "No sign of digging"
+            }.get(best_practice_string.get("weed_management", {}).get("has_the_demo_plot_been_dug", ""), ""),
+            "Result_Text__c": best_practice_string.get("weed_management", {}).get("how_many_weeds_are_under_the_tree_canopy", "") if app_id in ethiopian_app_ids else
+            {
+                "0": "No weeds under the tree canopy",
+                "1": "Few weeds under the tree canopy",
+                "2": "Many weeds under the tree canopy"
+            }.get(best_practice_string.get("weed_management", {}).get("how_many_weeds_are_under_the_tree_canopy", ""), ""),
+            "Result_Text_Two__c": best_practice_string.get("weed_management", {}).get("how_big_are_the_weeds", "") if app_id in ethiopian_app_ids else
+            {
+                "1": "Weeds are less than 30cm tall or 30cm spread for grasses",
+                "2": "Weeds are more than 30cm tall or 30cm spread for grasses"
+            }.get(best_practice_string.get("weed_management", {}).get("how_big_are_the_weeds", ""), ""),
+            "Weed_Management_Photo__c": url_string + best_practice_string.get("weed_management", {}).get("weed_management_photo", "")
+        },
+        
+        # 6. Rejuvenation
+        "coffee_global__rejuvenation":{
+            "Result__c": {
+                "1": "Yes. There is a rejuvenated plot",
+                "0": "No rejuvenated plot"
+            }.get(str(best_practice_string.get("rejuvenation", {}).get("rejuvenation_plot", "")), ""),
+            "Result_Text__c": {
+                "1": "Yes. Sucker selection is complete",
+                "0": "No. Sucker selection has not been done"
+            }.get(str(best_practice_string.get("rejuvenation", {}).get("suckers_three", "")), ""),
+            "Rejuvenation_Photo__c": url_string + best_practice_string.get("rejuvenation", {}).get("suckers_photo", "")
+        },
+        
+        # 7. Sucker Selection
+        "coffee_global__sucker_selection_taken_place":{
+            "Result__c": best_practice_string.get("sucker_selection", {}).get("Sucker_Selection_Taken_Place", ""),
+            "Result_number__c": best_practice_string.get("sucker_selection", {}).get("number_of_suckers", "")
+        },
+        
+        # # 8. Kitchen Garden (DRC)
+        # "coffee_global__kitchen_garden":{},
+        
+        # # 9. Woodlots (DRC)
+        # "coffee_global__woodlots":{},
+        
+        # 10. Stumping
+        "coffee_global__stumped_trees":{
+            "Result__c": best_practice_string.get("stumped", {}).get("stumped_trees", "")
+        }
+    }
+    
+    # Upsert Best Practices for Single Option Answers
+    for best_practice, best_practice_results in best_practice_criteria_single.items():
+        
+        # subset_dict = {key: best_practice_results[key] for key in list(best_practice_results.keys())[1:]}
+        
+        observation_results_fields = {
+            "Observation__r": {
+                "Submission_ID__c": data.get("id", "")
+            },
+            "RecordTypeId": "01224000000gQe5AAE",
+            **best_practice_results,
+            "Observation_Criterion__r": {
+                "Unique_Name__c": best_practice  
+            }
+        }
+        
+        if observation_results_fields.get("Result__c", "") not in ["", None, {}]:
+            try:
+                upsert_to_salesforce(
+                    "Observation_Result__c",
+                    "Submission_ID__c",
+                    f'{data.get("id", "")}{best_practice}',
+                    observation_results_fields,
+                    sf_connection
+                )
+            except Exception as e:
+                logger.error({
+                    "message": "Failed to process observation criterion",
+                    "best_practice": best_practice,
+                    "error": str(e)
+                })
+        else: 
+            logger.info({
+                "message": "Skipping Observation Criterion",
+                "best_practice": best_practice
+            })
+    
+    pruning_results = str(best_practice_string.get("pruning", {}).get("pruning_methods", "")).split(" ")
+    covercrop_results = str(best_practice_string.get("covercropping", {}).get("covercrop_present", "")).split(" ")
+    
+    # Handling Pruning
+    for result in pruning_results:
+        best_practice = "coffee_global__pruning"
+        observation_results_fields = {
+            "Result__c": {
+                "1": "Centers opened",
+                "2": "Unwanted suckers removed",
+                "3": "Dead branches removed", 
+                "4": "Branches touching the ground removed",
+                "5": "Broken/unproductive stems and/or branches removed",
+                "0": "No pruning methods used"
+            }.get(result),
+            "Observation__r": {
+                "Submission_ID__c": data.get("id", "")
+            },
+            "RecordTypeId": "01224000000gQe5AAE",
+            "Observation_Criterion__r": {
+                "Unique_Name__c": best_practice
+            }
+        }
+        
+        if observation_results_fields.get("Result__c", "") not in ["", None, {}]:
+            try:
+                upsert_to_salesforce(
+                    "Observation_Result__c",
+                    "Submission_ID__c",
+                    f'{data.get("id", "")}{best_practice}{result}',
+                    observation_results_fields,
+                    sf_connection
+                )
+            except Exception as e:
+                logger.error({
+                    "message": "Failed to process observation criterion",
+                    "best_practice": best_practice,
+                    "error": str(e)
+                })
+        else: 
+            logger.info({
+                "message": "Skipping Observation Criterion",
+                "best_practice": best_practice
+            })
+            
+    # Handling Covercrop
+    for result in covercrop_results:
+        best_practice = "coffee_global__covercrop_planted"
+        observation_results_fields = {
+            "Result__c": {
+                "1": "Arachis",
+                "2": "Beans",
+                "3": "Mulch",
+                "0": "No Covercropping Practice"
+            }.get(result),
+            "Observation__r": {
+                "Submission_ID__c": data.get("id", "")
+            },
+            "RecordTypeId": "01224000000gQe5AAE",
+            "Observation_Criterion__r": {
+                "Unique_Name__c": best_practice
+            }
+        }
+        
+        if observation_results_fields.get("Result__c", "") not in ["", None, {}]:
+            try:
+                upsert_to_salesforce(
+                    "Observation_Result__c",
+                    "Submission_ID__c",
+                    f'{data.get("id", "")}{best_practice}{result}',
+                    observation_results_fields,
+                    sf_connection
+                )
+            except Exception as e:
+                logger.error({
+                    "message": "Failed to process observation criterion",
+                    "best_practice": best_practice,
+                    "error": str(e)
+                })
+        else: 
+            logger.info({
+                "message": "Skipping Observation Criterion",
+                "best_practice": best_practice
+            })

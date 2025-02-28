@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 import asyncio
 from google.cloud import firestore
 from google.cloud.firestore import FieldFilter
-from jobs import registration, attendance, training_observation  # Import job modules
+from jobs import registration, attendance, training_observation, demoplot_observation  # Import job modules
 from utils.firestore_client import save_to_firestore, update_firestore_status
 import os
 from simple_salesforce import Salesforce
@@ -23,7 +23,7 @@ migrated_form_types = [
     'Edit Farmer Details', 'Training Observation', 
     "Attendance Light - Current Module", 'Participant', 
     "Training Group", "Training Session", "Project Role", 
-    "Household Sampling"
+    "Household Sampling", "Demo Plot Observation"
     ]
 
 # Salesforce Authentication
@@ -102,7 +102,7 @@ def process_data(origin_url_parameter):
             "message": "Job name not provided in payload",
             "request_id": request_id
         })
-        return jsonify({"error": "Job name not provided in payload"}), 200
+        return jsonify({"error": "Job name not provided in payload"}), 422
     try:
         logger.info({
             "message": "Storing data in Firestore",
@@ -183,6 +183,10 @@ async def process_firestore_records(collection):
             # 4. Salesforce -> CommCare    
             elif job_name in ["Participant", "Training Group", "Training Session", "Project Role", "Household Sampling"]:
                 success, error = await process_commcare_data.process_records_parallel(data.get("data"), job_name)  # Use the new parallel processing function
+                
+            # 5. Demo Plot Observation    
+            elif job_name == "Demo Plot Observation":
+                success, error = await demoplot_observation.send_to_salesforce(data.get("data"), sf_connection)
 
             if success:
                 # If processing is successful, mark as completed
@@ -301,6 +305,10 @@ async def process_failed_records(collection):
             # 4. Salesforce -> CommCare    
             elif job_name in ["Participant", "Training Group", "Training Session", "Project Role", "Household Sampling"]:
                 success, error = await process_commcare_data.process_records_parallel(data.get("data"), job_name)  # Use the new parallel processing function 
+            
+            # 5. Demo Plot Observation    
+            elif job_name == "Demo Plot Observation":
+                success, error = await demoplot_observation.send_to_salesforce(data.get("data"), sf_connection)
 
             if success:
                 # If processing is successful, mark as completed
@@ -445,6 +453,10 @@ async def retry_record(destination_url_parameter, id):
                 # 4. Training Observation
                 elif job_name == "Training Observation":
                     success, error = await training_observation.send_to_salesforce(data.get("data"), sf_connection)
+                    
+                # 5. Demo Plot Observation    
+                elif job_name == "Demo Plot Observation":
+                    success, error = await demoplot_observation.send_to_salesforce(data.get("data"), sf_connection)
 
                 if success:
                     # If successful, update Firestore status to completed
