@@ -8,7 +8,7 @@ import os
 # 1. Process Training Observation Object
 def process_training_observation(data: dict, sf_connection):
     url_string = f'https://www.commcarehq.org/a/{data.get("domain")}/api/form/attachment/{data.get("form", {}).get("meta", {}).get("instanceID")}/'
-    gps_coordinates = data.get("form", {}).get("meta", {}).get("location", {}).get("#text", "")
+    gps_coordinates = data.get("form", {}).get("meta", {}).get("location", {}).get("#text", "") or data.get("form", {}).get("gps_information", {}).get("gps_location", "")
     observation_fields = {
         "Observer__c": data.get("form", {}).get("Observer", ""),
         "Trainer__c": data.get("form", {}).get("trainer_salesforce_id", ""),
@@ -112,7 +112,7 @@ def process_training_observation_results_observer(data: dict, sf_connection):
 # 4. Process Demo Plot Observation
 def process_demoplot_observation(data: dict, sf_connection):
     url_string = f'https://www.commcarehq.org/a/{data.get("domain")}/api/form/attachment/{data.get("form", {}).get("meta", {}).get("instanceID")}/'
-    gps_coordinates = data.get("form", {}).get("meta", {}).get("location", {}).get("#text", "")
+    gps_coordinates = data.get("form", {}).get("meta", {}).get("location", {}).get("#text", "") or data.get("form", {}).get("gps_information", {}).get("gps_location", "")
     observation_fields = {
         "Observer__c": data.get("form", {}).get("observer", ""),
         "Trainer__c": data.get("form", {}).get("trainer", ""),
@@ -157,8 +157,8 @@ def process_demoplot_observation_results(data: dict, sf_connection):
             {
                 "1": "Yes, compost or manure heap seen",
                 "0": "No compost or manure heap seen"
-            }.get(best_practice_string.get("compost_heap", {}).get("present_compost_heap", ""), ""),
-            "Compost_Photo__c": url_string + best_practice_string.get("compost_heap", {}).get("compost_heap_photo", "")
+            }.get(best_practice_string.get("compost_heap", {}).get("present_compost_heap", ""), "") or "",
+            "Compost_Photo__c": url_string + best_practice_string.get("compost_heap", {}).get("compost_heap_photo", "") or ""
         },
         
         # 2. Mulch
@@ -167,12 +167,12 @@ def process_demoplot_observation_results(data: dict, sf_connection):
             {
                 "1": "Yes, Some mulch seen",
                 "0": "No mulch seen"
-            }.get(best_practice_string.get("mulch", {}).get("mulch_under_the_canopy", ""), ""),
+            }.get(best_practice_string.get("mulch", {}).get("mulch_under_the_canopy", ""), "") or "",
             "Result_Text__c": best_practice_string.get("mulch", {}).get("thickness_of_mulch", "") if app_id in ethiopian_app_ids else
             {
                 "1": "Soil can be seen clearly, less than 2cm of mulch",
                 "2": "Soil can not be seen, more than 2cm of mulch"
-            }.get(best_practice_string.get("mulch", {}).get("thickness_of_mulch", ""), "")
+            }.get(best_practice_string.get("mulch", {}).get("thickness_of_mulch", ""), "") or ""
         },
         
         # 3. Shade Management
@@ -183,8 +183,8 @@ def process_demoplot_observation_results(data: dict, sf_connection):
                 "1": "Light shade, 5 to 20%",
                 "2": "Medium shade, 20 to 40%",
                 "3": "Heavy shade, over 40%"
-            }.get(best_practice_string.get("shade_management", {}).get("level_of_shade_present", ""), ""),
-            "Shade_Management_Photo__c": url_string + best_practice_string.get("shade_management", {}).get("shade_management_photo", "")
+            }.get(best_practice_string.get("shade_management", {}).get("level_of_shade_present", ""), "") or "",
+            "Shade_Management_Photo__c": url_string + best_practice_string.get("shade_management", {}).get("shade_management_photo", "") or ""
         },
         
         # 4. Vetiver
@@ -193,7 +193,7 @@ def process_demoplot_observation_results(data: dict, sf_connection):
             {
                 "1": "Yes. Row of vetiver planted",
                 "0": "No. Vetiver not planted"
-            }.get(best_practice_string.get("vetiver", {}).get("vetiver_planted", ""), "")
+            }.get(best_practice_string.get("vetiver", {}).get("vetiver_planted", ""), "") or ""
         },
         
         # 5. Weed Management
@@ -202,19 +202,19 @@ def process_demoplot_observation_results(data: dict, sf_connection):
             {
                 "1": "Yes, field dug",
                 "0": "No sign of digging"
-            }.get(best_practice_string.get("weed_management", {}).get("has_the_demo_plot_been_dug", ""), ""),
+            }.get(best_practice_string.get("weed_management", {}).get("has_the_demo_plot_been_dug", ""), "") or "",
             "Result_Text__c": best_practice_string.get("weed_management", {}).get("how_many_weeds_are_under_the_tree_canopy", "") if app_id in ethiopian_app_ids else
             {
                 "0": "No weeds under the tree canopy",
                 "1": "Few weeds under the tree canopy",
                 "2": "Many weeds under the tree canopy"
-            }.get(best_practice_string.get("weed_management", {}).get("how_many_weeds_are_under_the_tree_canopy", ""), ""),
+            }.get(best_practice_string.get("weed_management", {}).get("how_many_weeds_are_under_the_tree_canopy", ""), "") or "",
             "Result_Text_Two__c": best_practice_string.get("weed_management", {}).get("how_big_are_the_weeds", "") if app_id in ethiopian_app_ids else
             {
                 "1": "Weeds are less than 30cm tall or 30cm spread for grasses",
                 "2": "Weeds are more than 30cm tall or 30cm spread for grasses"
-            }.get(best_practice_string.get("weed_management", {}).get("how_big_are_the_weeds", ""), ""),
-            "Weed_Management_Photo__c": url_string + best_practice_string.get("weed_management", {}).get("weed_management_photo", "")
+            }.get(best_practice_string.get("weed_management", {}).get("how_big_are_the_weeds", ""), "") or "",
+            "Weed_Management_Photo__c": url_string + best_practice_string.get("weed_management", {}).get("weed_management_photo", "") or ""
         },
         
         # 6. Rejuvenation
@@ -222,18 +222,18 @@ def process_demoplot_observation_results(data: dict, sf_connection):
             "Result__c": {
                 "1": "Yes. There is a rejuvenated plot",
                 "0": "No rejuvenated plot"
-            }.get(str(best_practice_string.get("rejuvenation", {}).get("rejuvenation_plot", "")), ""),
+            }.get(str(best_practice_string.get("rejuvenation", {}).get("rejuvenation_plot", "")), "") if isinstance(best_practice_string.get("rejuvenation", {}), dict) else "",
             "Result_Text__c": {
                 "1": "Yes. Sucker selection is complete",
                 "0": "No. Sucker selection has not been done"
-            }.get(str(best_practice_string.get("rejuvenation", {}).get("suckers_three", "")), ""),
-            "Rejuvenation_Photo__c": url_string + best_practice_string.get("rejuvenation", {}).get("suckers_photo", "")
+            }.get(str(best_practice_string.get("rejuvenation", {}).get("suckers_three", "")), "") if isinstance(best_practice_string.get("rejuvenation", {}), dict) else "",
+            "Rejuvenation_Photo__c": url_string + best_practice_string.get("rejuvenation", {}).get("suckers_photo", "") or ""
         },
         
         # 7. Sucker Selection
         "coffee_global__sucker_selection_taken_place":{
-            "Result__c": best_practice_string.get("sucker_selection", {}).get("Sucker_Selection_Taken_Place", ""),
-            "Result_number__c": best_practice_string.get("sucker_selection", {}).get("number_of_suckers", "")
+            "Result__c": best_practice_string.get("sucker_selection", {}).get("Sucker_Selection_Taken_Place", "") if isinstance(best_practice_string.get("sucker_selection", {}), dict) else "",
+            "Result_number__c": best_practice_string.get("sucker_selection", {}).get("number_of_suckers", "") if isinstance(best_practice_string.get("sucker_selection", {}), dict) else ""
         },
         
         # # 8. Kitchen Garden (DRC)
@@ -244,7 +244,7 @@ def process_demoplot_observation_results(data: dict, sf_connection):
         
         # 10. Stumping
         "coffee_global__stumped_trees":{
-            "Result__c": best_practice_string.get("stumped", {}).get("stumped_trees", "")
+            "Result__c": best_practice_string.get("stumped", {}).get("stumped_trees", "") if isinstance(best_practice_string.get("stumped", {}), dict) else ""
         }
     }
     
