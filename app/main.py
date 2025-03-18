@@ -520,7 +520,7 @@ def get_failed_jobs(destination_url_parameter):
     
     try:
         # Query Firestore for documents with status 'failed', limited to 5
-        processing_docs = db.collection(collection).where(filter=FieldFilter("status", "==", "failed")).limit(5).get()
+        processing_docs = db.collection(collection).where(filter=FieldFilter("status", "==", "failed")).get()
 
         # Extract relevant fields from Firestore documents
         failed_jobs = [
