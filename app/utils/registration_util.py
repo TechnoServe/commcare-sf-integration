@@ -33,14 +33,6 @@ def process_training_group(data: dict, sf_connection):
             "error": str(e),
         })
 
-# def training_group_exists(sf_connection, training_group_id):
-#         """Check if the Training Group exists in Salesforce."""
-#         try:
-#             response = sf_connection.Training_Group__c.get(training_group_id)
-#             return response is not None
-#         except Exception:
-#             return False
-
 def process_household(data: dict, sf_connection):
     request_id = data.get("id")
     survey_detail = data.get('form', {}).get('survey_detail')
@@ -48,7 +40,7 @@ def process_household(data: dict, sf_connection):
     job_name = data.get('form', {}).get('@name', '')
     
     # Adding a small module for PR Registration
-    pr_registration = data.get('form', {}).get('survey_type') == 'Farm Visit Full - PR' and data.get('form', {}).get('new_farmer') == 1
+    pr_registration = data.get('form', {}).get('survey_type', "") == 'Farm Visit Full - PR' and data.get('form', {}).get('new_farmer', "") == "1"
     
     try:
         # 1. Farmer Registration Form and Participant Update
@@ -59,16 +51,6 @@ def process_household(data: dict, sf_connection):
                 "Farm_Size__c": get_farm_size(data) or None,
                 "Number_of_Coffee_Plots__c": get_number_of_plots(data) or None
             }
-
-            # Check Training Group if environment is sandbox
-            # training_group_id = data.get("form", {}).get("Training_Group_Id")
-            # if environment.lower() == "sandbox" and training_group_id:
-            #     if training_group_exists(sf_connection, training_group_id):
-            #         household_fields["Training_Group__c"] = training_group_id
-            #     else:
-            #         logger.info(f"Skipping Training Group as it does not exist: {training_group_id}")
-            # else:
-            #     household_fields["Training_Group__c"] = training_group_id
 
             if primary_member or survey_detail == "Existing Farmer Change in FFG":
                 upsert_to_salesforce(
@@ -82,13 +64,6 @@ def process_household(data: dict, sf_connection):
                 household_fields = {
                     "Name": data.get("form", {}).get("Household_Number"),
                 }
-                # if environment.lower() == "sandbox" and training_group_id:
-                #     if training_group_exists(sf_connection, training_group_id):
-                #         household_fields["Training_Group__c"] = training_group_id
-                #     else:
-                #         logger.info(f"Skipping Training Group as it does not exist: {training_group_id}")
-                # else:
-                #     household_fields["Training_Group__c"] = training_group_id
 
                 upsert_to_salesforce(
                     "Household__c",
@@ -101,8 +76,8 @@ def process_household(data: dict, sf_connection):
         # 2. Farmer Update Form
         elif survey_detail == 'Participant Update':
             household_fields = {
-                "Farm_Size__c": get_farm_size(data) or None,
-                "Number_of_Coffee_Plots__c": get_number_of_plots(data) or None
+                "Farm_Size__c": get_farm_size(data) or "",
+                "Number_of_Coffee_Plots__c": get_number_of_plots(data) or ""
             }
 
             if primary_member:
@@ -117,25 +92,19 @@ def process_household(data: dict, sf_connection):
         # 3. Special Case - PR Registration
         elif pr_registration:
             household_fields = {
-                "Name": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("Household_Number"),
-                "Farm_Size__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("Farm_Size", None),
-                "Farm_Size_Before__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("farm_size_3_years_and_older"),
-                "Farm_Size_After__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("farm_size_under_3_years")
+                "Name": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details", {}).get("Household_Number", ""),
+                "Training_Group__r": {
+                    "CommCare_Case_Id__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details", {}).get("Training_Group_Id", "")
+                },
+                "Farm_Size__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details", {}).get("Farm_Size", ""),
+                "Farm_Size_Before__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details", "").get("farm_size_3_years_and_older", ""),
+                "Farm_Size_After__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details", "").get("farm_size_under_3_years", "")
             }
-
-            # training_group_id = data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("Training_Group_Id")
-            # if environment.lower() == "sandbox" and training_group_id:
-            #     if training_group_exists(sf_connection, training_group_id):
-            #         household_fields["Training_Group__c"] = training_group_id
-            #     else:
-            #         logger.info(f"Skipping Training Group as it does not exist: {training_group_id}")
-            # else:
-            #     household_fields["Training_Group__c"] = training_group_id
 
             upsert_to_salesforce(
                 "Household__c",
                 "Household_ID__c",
-                data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("Household_Id", ""),
+                data.get("form", {}).get("participant_data", {}).get("farmer_registration_details", "").get("Household_Id", ""),
                 household_fields,
                 sf_connection
             )
@@ -154,14 +123,9 @@ def process_household(data: dict, sf_connection):
 def process_participant(data: dict, sf_connection):
     survey_detail = data.get('form', {}).get('survey_detail')
     request_id = data.get("id")
+    
     # Adding a small module for PR Registration
-    pr_registration = data.get('form', {}).get('survey_type') == 'Farm Visit Full - PR' and data.get('form', {}).get('new_farmer') == 1
-
-    # Determine if Training Group exists (only for sandbox)
-    # training_group_id = data.get("form", {}).get("Training_Group_Id")
-    # training_group_exists_flag = True
-    # if environment.lower() == "sandbox" and training_group_id:
-    #     training_group_exists_flag = training_group_exists(sf_connection, training_group_id)
+    pr_registration = data.get('form', {}).get('survey_type', "") == 'Farm Visit Full - PR' and data.get('form', {}).get('new_farmer', "") == "1"
 
     try:
         # 1. New Farmer Registration
@@ -238,23 +202,25 @@ def process_participant(data: dict, sf_connection):
         # 4. PR Registration
         elif pr_registration:
             participant_fields = {
-                "TNS_Id__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("Farmer_Id"),
+                "TNS_Id__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("Farmer_Id", ""),
                 "Household__r": {
-                    "Household_ID__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("Household_Id")
+                    "Household_ID__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("Household_Id", "")
                 },
-                "Training_Group__c": data.get("form", {}).get("Training_Group_Id", "") or None,
-                "Farm_Size__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("Farm_Size", None),
-                "Farm_Size_Before__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("farm_size_3_years_and_older"),
-                "Farm_Size_After__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("farm_size_under_3_years"),
-                "Name": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("First_Name"),
-                "Last_Name__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("Last_Name"),
-                "Age__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("Age"),
-                "Gender__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("Gender"),
-                "Status__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("Status"),
-                "Phone_Number__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("Phone_Number") or None,
-                "Primary_Household_Member__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("Primary_Household_Member"),
+                "Training_Group__r": {
+                    "CommCare_Case_Id__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details", {}).get("Training_Group_Id", "")
+                },
+                "Farm_Size__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("Farm_Size", ""),
+                "Farm_Size_Before__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("farm_size_3_years_and_older", ""),
+                "Farm_Size_After__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("farm_size_under_3_years", ""),
+                "Name": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("First_Name", ""),
+                "Last_Name__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("Last_Name", ""),
+                "Age__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("Age", ""),
+                "Gender__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("Gender", ""),
+                "Status__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("Status", ""),
+                "Phone_Number__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("Phone_Number", ""),
+                "Primary_Household_Member__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("Primary_Household_Member", ""),
+                "Registration_Date__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("registration_date", ""),
                 "Sent_to_OpenFn_Status__c": "Complete",
-                "Registration_Date__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("registration_date") or None,
                 "Create_In_CommCare__c": False
             }
 
