@@ -134,9 +134,9 @@ def process_best_practices(data: dict, sf_connection):
     url_string = f'https://www.commcarehq.org/a/{data.get("domain")}/api/form/attachment/{data.get("form", {}).get("meta", {}).get("instanceID")}/'
     
     best_practice_fields = {
-        'Name__c': f'FV-{data.get('id')}',
+        'Name__c': f'FV-{data.get("id")}',
         'Farm_Visit__r': {
-            'FV_Submission_ID__c': f'FV-{data.get('id')}'
+            'FV_Submission_ID__c': f'FV-{data.get("id")}'
         },
         
         # 1. Nutrition
@@ -325,9 +325,9 @@ def process_best_practice_results_erosion_control(data: dict, sf_connection):
     
     for result in results:
         best_practice_result_fields = {
-            'FV_Submission_ID__c': f'FV-{data.get('id')}',
+            'FV_Submission_ID__c': f'FV-{data.get("id")}',
             'FV_Best_Practices__r': {
-                "FV_Submission_ID__c": f'FV-{data.get('id')}'
+                "FV_Submission_ID__c": f'FV-{data.get("id")}'
             },
             'Best_Practice_Result_Type__c': 'Erosion Control',
             'Best_Practice_Result_Description__c': {
@@ -360,9 +360,9 @@ def process_best_practice_results_chemicals_and_fertilizers(data: dict, sf_conne
     
     for result in results:
         best_practice_result_fields = {
-            'FV_Submission_ID__c': f'FV-{data.get('id')}',
+            'FV_Submission_ID__c': f'FV-{data.get("id")}',
             'FV_Best_Practices__r': {
-                "FV_Submission_ID__c": f'FV-{data.get('id')}'
+                "FV_Submission_ID__c": f'FV-{data.get("id")}'
             },
             'Best_Practice_Result_Type__c': 'Chemicals and Fertilizers Applied',
             'Best_Practice_Result_Description__c': {
@@ -478,9 +478,9 @@ def process_best_practice_results_cbb(data: dict, sf_connection):
     
     for result in results:
         best_practice_result_fields = {
-            'FV_Submission_ID__c': f'FV-{data.get('id')}',
+            'FV_Submission_ID__c': f'FV-{data.get("id")}',
             'FV_Best_Practices__r': {
-                "FV_Submission_ID__c": f'FV-{data.get('id')}'
+                "FV_Submission_ID__c": f'FV-{data.get("id")}'
             },
             'Best_Practice_Result_Type__c': 'Management of Coffee Berry Borer (CBB)',
             'Best_Practice_Result_Description__c' : {
@@ -574,9 +574,9 @@ def process_best_practice_results_clr(data: dict, sf_connection):
     if farm_visit_type == 'Farm Visit Full - PR':
         for result in results:
             best_practice_result_fields = {
-                'FV_Submission_ID__c': f'FV-{data.get('id')}',
+                'FV_Submission_ID__c': f'FV-{data.get("id")}',
                 'FV_Best_Practices__r': {
-                    "FV_Submission_ID__c": f'FV-{data.get('id')}'
+                    "FV_Submission_ID__c": f'FV-{data.get("id")}'
                 },
                 'Best_Practice_Result_Type__c': 'Management of Coffee Leaf Rust (CLR)',
                 'Best_Practice_Result_Description__c' : {
@@ -613,10 +613,10 @@ def process_best_practice_results_pruning(data: dict, sf_connection):
     if farm_visit_type in ['Farm Visit Full - PR', 'Farm Visit Full - ZM', 'Farm Visit Full - KE', 'Farm Visit Full - BU']:
         for result in results:
             best_practice_result_fields = {
-                'FV_Submission_ID__c': f'FV-{data.get('id')}',
+                'FV_Submission_ID__c': f'FV-{data.get("id")}',
                 'Best_Practice_Result_Type__c': 'Pruning',
                 'FV_Best_Practices__r': {
-                    "FV_Submission_ID__c": f'FV-{data.get('id')}'
+                    "FV_Submission_ID__c": f'FV-{data.get("id")}'
                 },
                 'Best_Practice_Result_Description__c' : (
                     'N/A' if farm_visit_type in ['Farm Visit Full - PR', 'Farm Visit Full - ZM'] and field_age < 3 else 
@@ -655,10 +655,10 @@ def process_best_practice_results_weeding(data: dict, sf_connection):
     if farm_visit_type in ['Farm Visit Full - ZM', 'Farm Visit Full - KE', 'Farm Visit Full - PR'] and used_herbicide:
         for result in results:
             best_practice_result_fields = {
-                'FV_Submission_ID__c': f'FV-{data.get('id')}',
+                'FV_Submission_ID__c': f'FV-{data.get("id")}',
                 'Best_Practice_Result_Type__c': 'Weeding',
                 'FV_Best_Practices__r': {
-                    "FV_Submission_ID__c": f'FV-{data.get('id')}'
+                    "FV_Submission_ID__c": f'FV-{data.get("id")}'
                 },
                 'Best_Practice_Result_Description__c' : {
                     '1' : 'Glyphosate (Eg Round Up)' if farm_visit_type in ['Farm Visit Full - ZM', 'Farm Visit Full - KE'] else
@@ -694,9 +694,9 @@ def process_best_practice_results_pesticide_use_pest_problems(data: dict, sf_con
     if farm_visit_type == 'Farm Visit Full - PR':
         for result in results:
             best_practice_result_fields = {
-                'FV_Submission_ID__c': f'FV-{data.get('id')}',
+                'FV_Submission_ID__c': f'FV-{data.get("id")}',
                 'FV_Best_Practices__r': {
-                    "FV_Submission_ID__c": f'FV-{data.get('id')}'
+                    "FV_Submission_ID__c": f'FV-{data.get("id")}'
                 },
                 'Best_Practice_Result_Type__c': 'Pest Problems',
                 'Best_Practice_Result_Description__c' : {
@@ -729,9 +729,9 @@ def process_best_practice_results_pesticide_use_sprays(data: dict, sf_connection
     if farm_visit_type == 'Farm Visit Full - PR':
         for result in results:
             best_practice_result_fields = {
-                'FV_Submission_ID__c': f'FV-{data.get('id')}',
+                'FV_Submission_ID__c': f'FV-{data.get("id")}',
                 'FV_Best_Practices__r': {
-                    "FV_Submission_ID__c": f'FV-{data.get('id')}'
+                    "FV_Submission_ID__c": f'FV-{data.get("id")}'
                 },
                 'Best_Practice_Result_Type__c': 'Pest Sprays',
                 'Best_Practice_Result_Description__c' : {
@@ -762,9 +762,9 @@ def process_best_practice_results_compost_and_manure(data: dict, sf_connection):
     if farm_visit_type == 'Farm Visit Full - BU':
         for result in results:
             best_practice_result_fields = {
-                'FV_Submission_ID__c': f'FV-{data.get('id')}',
+                'FV_Submission_ID__c': f'FV-{data.get("id")}',
                 'FV_Best_Practices__r': {
-                    "FV_Submission_ID__c": f'FV-{data.get('id')}'
+                    "FV_Submission_ID__c": f'FV-{data.get("id")}'
                 },
                 'Best_Practice_Result_Type__c': 'Compost',
                 'Best_Practice_Result_Description__c' : {
