@@ -219,7 +219,7 @@ def process_attendance(data: dict, sf_connection):
                 upsert_to_salesforce (
                     "Attendance__c",
                     "Submission_ID__c",
-                    f"{session.get("training_session", "")}{participant}",
+                    f'{session.get("training_session", "")}{participant}',
                     attendance_fields,
                     sf_connection
                 )
