@@ -93,6 +93,34 @@ def process_training_session(data: dict, sf_connection):
             sf_connection
         )
     
+    # 5. Process for field day attendance full
+    elif form_name == "Field Day Attendance Full" or survey_detail == "Field Day Attendance Full":
+        items = data.get("form", {}).get("barrios_repeat_group", {}).get("item", [])
+        
+        # 5.1. Get all training groups where trainees came from
+        session_records = [i for i in items if i.get("attendance_count_repeat", "") not in ["", "0"]]
+        
+        # 5.2. Upsert the training sessions
+        for session in session_records:
+            session_data = {
+                "Trainer__c": data.get("form", {}).get("trainer", ""),
+                "Number_in_Attendance__c": session.get("attendance_count_repeat", ""),
+                "Session_Photo_URL__c": get_photo_url(data),
+                "Date__c": data.get("form", {}).get("date"),
+                "Location_GPS__Latitude__s": get_gps_part(data.get("form", {}).get("gps_coordinates", ""), 0),
+                "Location_GPS__Longitude__s": get_gps_part(data.get("form", {}).get("gps_coordinates", ""), 1),
+                "Altitude__c": get_gps_part(data.get("form", {}).get("gps_coordinates", ""), 2),
+            }
+            
+            # 5.2.1. Upsert to salesforce
+            upsert_to_salesforce(
+                "Training_Session__c",
+                "CommCare_Case_Id__c",
+                session.get("training_session", ""),
+                session_data,
+                sf_connection
+            )
+    
     else: logger.info({
             "message": "Skipping training session upsert logic",
             "request_id": request_id,
@@ -105,7 +133,7 @@ def process_attendance(data: dict, sf_connection):
     request_id = data.get("id")
     survey_detail = data.get("form",{}).get("survey_detail", "")
 
-    if form_name == 'Farmer Registration':
+    if form_name == 'Farmer Registration' or form_name == 'Field Day Farmer Registration':
         # 1. Process for Farmer Registration - New Farmer
         if survey_detail in ["New Farmer New Household", "New Farmer Existing Household"]:
             attendance_fields = {
@@ -153,7 +181,6 @@ def process_attendance(data: dict, sf_connection):
             participants = present_participants.split(" ")
             for p_id in participants:
                 session = data.get("form", {}).get("training_session", "")
-                photo = data.get("form", {}).get("photo", "")
                 submission_id = f"{session}{p_id}"
 
                 record = {
@@ -169,6 +196,34 @@ def process_attendance(data: dict, sf_connection):
                     record,
                     sf_connection
                 )
+                
+    # 4. Process for Field Day Attendance Full
+    elif form_name == "Field Day Attendance Full" or survey_detail == "Field Day Attendance Full":
+        items = data.get("form", {}).get("barrios_repeat_group", {}).get("item", [])
+        
+        # 5.1. Get all training groups where trainees came from
+        session_records = [i for i in items if i.get("attendance_count_repeat", "") not in ["", "0"]]
+        
+        for session in session_records:
+            participants = session.get("present_participants_repeat", "").split(" ")
+            
+            # 5.1.1. Loop through each participant and upsert an attendance
+            for participant in participants:
+                attendance_fields = {
+                    "Status__c": "Present",
+                    "Training_Session__r": {"CommCare_Case_Id__c": session.get("training_session", "")},
+                    "Participant__r": {"CommCare_Case_Id__c": participant},
+                }
+                
+                # 5.1.1.1. Upsert to salesforce
+                upsert_to_salesforce (
+                    "Attendance__c",
+                    "Submission_ID__c",
+                    f"{session.get("training_session", "")}{participant}",
+                    attendance_fields,
+                    sf_connection
+                )
+    
     else: 
         logger.info({
             "message": "Skipping attendance upsert logic",

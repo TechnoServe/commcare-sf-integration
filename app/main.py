@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 import asyncio
 from google.cloud import firestore
 from google.cloud.firestore import FieldFilter
-from jobs import registration, attendance, training_observation, demoplot_observation  # Import job modules
+from jobs import registration, attendance, training_observation, demoplot_observation, farm_visit  # Import job modules
 from utils.firestore_client import save_to_firestore, update_firestore_status
 import os
 from simple_salesforce import Salesforce
@@ -23,7 +23,8 @@ migrated_form_types = [
     'Edit Farmer Details', 'Training Observation', 
     "Attendance Light - Current Module", 'Participant', 
     "Training Group", "Training Session", "Project Role", 
-    "Household Sampling", "Demo Plot Observation"
+    "Household Sampling", "Demo Plot Observation", "Farm Visit Full",
+    "Farm Visit - AA", "Field Day Farmer Registration", "Field Day Attendance Full"
     ]
 
 # Salesforce Authentication
@@ -169,11 +170,11 @@ async def process_firestore_records(collection):
             update_firestore_status(doc_id, "processing", collection)  # Set status to "processing" before handling the record
 
             # 1. Farmer Registration and Update
-            if job_name in ["Farmer Registration", "Edit Farmer Details"]:
+            if job_name in ["Farmer Registration", "Edit Farmer Details", "Field Day Farmer Registration"]:
                 success, error = await registration.send_to_salesforce(data.get("data"), sf_connection)
 
             # 2. Attendance Light and Full
-            elif job_name in ["Attendance Full - Current Module", "Attendance Light - Current Module"]:
+            elif job_name in ["Attendance Full - Current Module", "Attendance Light - Current Module", "Field Day Attendance Full"]:
                 success, error = await attendance.send_to_salesforce(data.get("data"), sf_connection)
             
             # 3. Training Observation    
@@ -187,6 +188,10 @@ async def process_firestore_records(collection):
             # 5. Demo Plot Observation    
             elif job_name == "Demo Plot Observation":
                 success, error = await demoplot_observation.send_to_salesforce(data.get("data"), sf_connection)
+            
+            # 6. Farm Visit
+            elif job_name in ["Farm Visit Full", "Farm Visit - AA"]:
+                success, error = await farm_visit.send_to_salesforce(data.get("data"), sf_connection)
 
             if success:
                 # If processing is successful, mark as completed
@@ -291,11 +296,11 @@ async def process_failed_records(collection):
             update_firestore_status(doc_id, "processing", collection)  # Set status to "processing" before handling the record
 
             # 1. Farmer Registration and Update
-            if job_name in ["Farmer Registration", "Edit Farmer Details"]:
+            if job_name in ["Farmer Registration", "Edit Farmer Details", "Field Day Farmer Registration"]:
                 success, error = await registration.send_to_salesforce(data.get("data"), sf_connection)
             
             # 2. Attendance Light).where( Full    
-            elif job_name in ["Attendance Full - Current Module", "Attendance Light - Current Module"]:
+            elif job_name in ["Attendance Full - Current Module", "Attendance Light - Current Module", "Field Day Attendance Full"]:
                 success, error = await attendance.send_to_salesforce(data.get("data"), sf_connection)
             
             # 3. Training Observation    
@@ -309,6 +314,10 @@ async def process_failed_records(collection):
             # 5. Demo Plot Observation    
             elif job_name == "Demo Plot Observation":
                 success, error = await demoplot_observation.send_to_salesforce(data.get("data"), sf_connection)
+                
+            # 6. Farm Visit Full
+            elif job_name in ["Farm Visit Full", "Farm Visit - AA"]:
+                success, error = await farm_visit.send_to_salesforce(data.get("data"), sf_connection)
 
             if success:
                 # If processing is successful, mark as completed
@@ -436,7 +445,7 @@ async def retry_record(destination_url_parameter, id):
                 # Check the job type and call the appropriate processing function
                 
                 # 1. Participant Registration
-                if job_name in ["Farmer Registration", "Edit Farmer Details"]:
+                if job_name in ["Farmer Registration", "Edit Farmer Details", "Field Day Farmer Registration"]:
                     success, error = await registration.send_to_salesforce(data.get("data"), sf_connection)
                     logger.info(f'Process was successful: {success}')
                 
@@ -446,7 +455,7 @@ async def retry_record(destination_url_parameter, id):
                     logger.info(f'Process was successful: {success}')
                     
                 # 3. Attendance Full).where( Light
-                elif job_name in ["Attendance Full - Current Module", "Attendance Light - Current Module"]:
+                elif job_name in ["Attendance Full - Current Module", "Attendance Light - Current Module", "Field Day Attendance Full"]:
                     success, error = await attendance.send_to_salesforce(data.get("data"), sf_connection)
                     logger.info(f'Process was successful: {success}')
                 
@@ -457,6 +466,10 @@ async def retry_record(destination_url_parameter, id):
                 # 5. Demo Plot Observation    
                 elif job_name == "Demo Plot Observation":
                     success, error = await demoplot_observation.send_to_salesforce(data.get("data"), sf_connection)
+                    
+                # 6. Farm Visit Full
+                elif job_name in ["Farm Visit Full", "Farm Visit - AA"]:
+                    success, error = await farm_visit.send_to_salesforce(data.get("data"), sf_connection)
 
                 if success:
                     # If successful, update Firestore status to completed

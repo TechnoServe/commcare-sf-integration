@@ -16,8 +16,6 @@ def generate_common_farm_visit_fields(data: dict, url_string, gps_coordinates):
         "Farm_Visit_Type__c": data.get("form", {}).get("survey_type", ""),
         "Training_Group__c": data.get('form', {}).get('case', {}).get('@case_id', ''),
         "Training_Session__c": data.get('form', {}).get('training_session', ''),
-        "Primary_Farmer_PIMA_ID__c": data.get('form', {}).get('farm_being_visited', ''),
-        "Secondary_Farmer_PIMA_ID__c": data.get('form', {}).get('secondary_farmer', ''),
         "Date_Visited__c": data.get('form', {}).get('date_of_visit', ''),
         "visit_comments__c": data.get('form', {}).get('farm_visit_comments', ''),
         "Farmer_Trainer__c": data.get('form', {}).get('trainer', ''),
@@ -38,7 +36,7 @@ def process_farm_visit(data: dict, sf_connection):
     farm_visit_type = data.get("form", {}).get("survey_type", "")
     url_string = f'https://www.commcarehq.org/a/{data.get("domain")}/api/form/attachment/{data.get("form", {}).get("meta", {}).get("instanceID")}/'
     gps_coordinates = (data.get("form", {}).get("gps_coordinates", "") or "").split(" ")
-    new_farmer = data.get("form", {}).get("new_farmer", "") == '1' or data.get("form", {}).get("new_farmer", "") == 1
+    new_farmer = data.get("form", {}).get("new_farmer", "") == '1'
 
     # Generate common fields
     farm_visit_fields = generate_common_farm_visit_fields(data, url_string, gps_coordinates)
@@ -54,37 +52,55 @@ def process_farm_visit(data: dict, sf_connection):
         })
     
     # 2. Normal Farm Visit for all other countries
-    elif survey_detail == 'Farm Visit Full':
+    elif survey_detail == 'Farm Visit Full' and not new_farmer:
+        
+        secondary_farmer = data.get('form', {}).get('secondary_farmer', "")
+        
         # FT Level specific fields
         farm_visit_fields.update({
             "Farm_Visited__r": {
-                "CommCare_Case_Id__c": data.get('form', {}).get('farm_being_visited', "")
+                "CommCare_Case_Id__c": data.get('form', {}).get('farm_being_visted', '')
             },
-            "Secondary_Farmer__r": {
-                "CommCare_Case_Id__c": data.get('form', {}).get('secondary_farmer', "")
-            }
+            "Primary_Farmer_PIMA_ID__c": data.get('form', {}).get('farm_being_visted', '')
         })
+        
+        if secondary_farmer != "":
+            farm_visit_fields.update({
+                "Secondary_Farmer__r": {
+                    "CommCare_Case_Id__c": secondary_farmer
+                },
+                "Secondary_Farmer_PIMA_ID__c": secondary_farmer
+            })
     
     # 3. AA Level Farm Visit
     elif survey_detail == 'Farm Visit - AA':
         
         # Farmers present
-        farmers_present = data.get('form', {}).get('farm_being_visited', "")
+        farmers_present = data.get('form', {}).get('farm_being_visted', "")
         farmers_list = farmers_present.split(" ") if farmers_present else []
         primary_farmer = farmers_list[0] if len(farmers_list) > 0 else ""
         secondary_farmer = farmers_list[1] if len(farmers_list) > 1 else ""
+        
         # AA Level specific fields
         farm_visit_fields.update({
             "Primary_Farmer_PIMA_ID__c": primary_farmer,
-            "Secondary_Farmer_PIMA_ID__c": secondary_farmer,
             "Farm_Visited__r": {"CommCare_Case_Id__c": primary_farmer},
-            "Secondary_Farmer__r": {"CommCare_Case_Id__c": secondary_farmer},
-            "FV_AA_Farmer_1_Attended_Any_Training__c": 'Yes' if data.get('form', {}).get('farmer_1_questions', {}).get('attended_training', "") == 1 else 'No',
-            "FV_AA_Farmer_2_Attended_Any_Training__c": 'Yes' if data.get('form', {}).get('farmer_2_questions', {}).get('attended_training', "") == 1 else 'No' if data.get('form', {}).get('farmer_2_questions', {}).get('attended_training', "") == 0 else "",
+            "Training_Group__c": data.get("form", {}).get("training_group", ""),
+            "FV_AA_Farmer_1_Attended_Any_Training__c": 'Yes' if data.get('form', {}).get('farmer_1_questions', {}).get('attended_training', "") == "1" else 'No',
+            "FV_AA_Farmer_2_Attended_Any_Training__c": 'Yes' if data.get('form', {}).get('farmer_2_questions', {}).get('attended_training', "") == "1" else 'No' if data.get('form', {}).get('farmer_2_questions', {}).get('attended_training', "") == "0" else "",
             "FV_AA_Farmer_1_Trainings_Attended__c": data.get('form', {}).get('farmer_1_questions', {}).get('number_of_trainings', ""),
             "FV_AA_Farmer_2_Trainings_Attended__c": data.get('form', {}).get('farmer_2_questions', {}).get('number_of_trainings', ""),
             "FV_AA_Visit_Done_By_AA__c": 'Yes'
         })
+        
+        # Adding a secondary farmer
+        if secondary_farmer != "":
+            farm_visit_fields.update({
+                "Secondary_Farmer__r": {
+                    "CommCare_Case_Id__c": secondary_farmer
+                },
+                "Secondary_Farmer_PIMA_ID__c": secondary_farmer
+            })
         
     # Country-Specific questions
     # 1. Burundi
@@ -136,7 +152,10 @@ def process_best_practices(data: dict, sf_connection):
             '3': "Many large weeds under the tree canopy (ground is covered with weeds)"
         }.get(str(bp_string.get('weeding', {}).get('how_many_weeds_under_canopy_and_how_big_are_they', "")), "") or "",
         'Have_herbicides_been_used_on_the_field__c': bp_string.get('weeding', {}).get('used_herbicides', "") or "",
-        'photo_of_weeds_under_the_canopy__c': f'{url_string}{bp_string.get("weeding", {}).get("weeds_under_the_canopy_photo", "")}' or "",
+        'photo_of_weeds_under_the_canopy__c': (
+            f'{url_string}{bp_string.get("weeding", {}).get("photo_of_weeds_under_the_canopy", "")}' if farm_visit_type == "Farm Visit Full - ET" else
+            f'{url_string}{bp_string.get("weeding", {}).get("weeds_under_the_canopy_photo", "")}' 
+        ),
         
         # 3. Shade Management
         'level_of_shade_present_on_the_farm__c': {
@@ -168,7 +187,7 @@ def process_best_practices(data: dict, sf_connection):
             "1": "Yes",
             "0": "No"
         }.get(str(bp_string.get('record_keeping', {}).get('are_there_records_on_the_record_book', "")), "") or "",
-        'take_a_photo_of_the_record_book__c': f'{url_string}{bp_string.get("record_keeping", {}).get("take_a_photo_of_the_record_book", "")}' if str(bp_string.get('record_keeping', {}).get('do_you_have_a_record_book', "")) == '1' else ""
+        'take_a_photo_of_the_record_book__c': f'{url_string}{bp_string.get("record_keeping", {}).get("take_a_photo_of_the_record_book", "")}' if str(bp_string.get('record_keeping', {}).get('are_there_records_on_the_record_book', "")) == '1' else ""
         
     }
     
@@ -207,8 +226,8 @@ def process_best_practices(data: dict, sf_connection):
     if farm_visit_type in ['Farm Visit Full - KE', 'Farm Visit Full - ZM', 'Farm Visit Full - PR', 'Farm Visit Full - BU']:
         best_practice_fields.update({
             # 1. Main Stems
-            'number_of_main_stems_on_majority_trees__c': bp_string.get('mainstems', {}).get('number_of_main_stems_on_majority_trees', ""),
-            'photo_of_trees_and_average_main_stems__c':f'{url_string}{bp_string.get("mainstems", {}).get("trees_and_main_stems_photo", "")}',
+            'number_of_main_stems_on_majority_trees__c': bp_string.get('main_stems', {}).get('number_of_main_stems_on_majority_trees', ""),
+            'photo_of_trees_and_average_main_stems__c':f'{url_string}{bp_string.get("main_stems", {}).get("trees_and_main_stems_photo", "")}',
             
             # 2. Erosion Control Photos
             'Stabilizing_Grasses_Photo_URL__c': f'{url_string}{bp_string.get("erosion_control", {}).get("stabilizing_grasses_image")}' if bp_string.get("erosion_control", {}).get("stabilizing_grasses_image", "") != "" else "",
@@ -232,6 +251,20 @@ def process_best_practices(data: dict, sf_connection):
     
     # 5. Process FV Best Practices for ET exclusive practices
     if farm_visit_type == 'Farm Visit Full - ET':
+        app_id = data.get("app_id", "")
+        # App IDs to use in Stumping
+        et_2023c = [
+            'd63cdcf6b9d849548413ca356871cd3a', # JCP
+            'e9fb922a1526447b9485b26c4a1b8eb5' # Regrow
+            ]
+        et_2024c = [
+            'dd10fc19040d40f0be48a447e1d2727c', # Regrow
+            'f079b0daae1d4d34a89e331dc5a72fbd' # CREW
+            ]
+        et_2025c = [
+            '521097abbcfd4fa79668cb6ca3dca28a', # Regrow
+            '0c9b5791828b4baea6c1eaa4d6979c5a' # CREW
+            ]
         best_practice_fields.update({
             
             # 1. Stumping (Needs Revision)
@@ -240,7 +273,21 @@ def process_best_practices(data: dict, sf_connection):
                 "0": "No"
             }.get(str(bp_string.get('stumping', {}).get('stumping_methods_used_on_majority_of_trees', "")), "") or "",
 
-            'year_stumping__c': '', # This is confusing
+            'year_stumping__c': { # This is confusing - Took me a while. Backend data needs cleaning for prior submissions
+                '0': (
+                    'January to March 2023 just after the training started' if app_id in et_2023c else
+                    'January to March 2024 just after the training started' if app_id in et_2024c else
+                    'January to March 2025 just after the training started' if app_id in et_2025c else
+                    ''
+                    ),
+                '1': (
+                    'January to March 2024 at the start of the second year of training' if app_id in et_2023c else
+                    'January to March 2025 at the start of the second year of training' if app_id in et_2024c else
+                    'January to March 2026 at the start of the second year of training' if app_id in et_2025c else
+                    ''
+                    ),
+                'both_periods': 'Both Stumping Periods'
+                }.get(bp_string.get('stumping', {}).get('year_stumping', "")), 
             'number_of_trees_stumped__c': bp_string.get('stumping', {}).get('total_stumped_trees', "") or "",
             'main_stems_in_majority_coffee_trees__c':  bp_string.get('stumping', {}).get('look_on_average_how_many_main_stems_are_on_the_stumped_trees_note_to_traine', "") or "",
             'photos_of_stumped_coffee_trees__c': f'{url_string}{bp_string.get("stumping", {}).get("photos_of_stumped_coffee_trees")}' if str(bp_string.get('stumping', {}).get('stumping_methods_used_on_majority_of_trees', "")) == '1' else "",
@@ -250,10 +297,8 @@ def process_best_practices(data: dict, sf_connection):
             'number_of_bee_hives__c': data.get('form', {}).get('question1', {}).get('look_and_ask_how_many_hives_do_you_have_of_each_type', "") or "",
             'number_of_bee_hives_transitional__c': data.get('form', {}).get('question1', {}).get('look_and_ask_how_many_hives_do_you_have_of_each_type_transitional', "") or "",
             'number_of_bee_hives_traditional__c': data.get('form', {}).get('question1', {}).get('look_and_ask_how_many_hives_do_you_have_of_each_type_traditional', "") or "",
-            'take_a_photo_showing_the_modern_hives__c': f"{url_string}{data.get('form', {}).get('question1', {}).get('take_a_photo_showing_the_modern_hives_note_to_trainer_dont_get_too_close_to')}" if float(data.get('form', {}).get('question1', {}).get('look_and_ask_how_many_hives_do_you_have_of_each_type')) > 0 else "",
-            'take_a_photo_of_the_transitional_hive__c': f"{url_string}{data.get('form', {}).get('question1', {}).get('take_a_photo_showing_the_transitional_hives__note_to_trainer_dont_get_too_c')}" if float(data.get('form', {}).get('question1', {}).get('look_and_ask_how_many_hives_do_you_have_of_each_type_transitional')) > 0 else "",
-            'take_a_photo_of_the_traditional_hive__c': f"{url_string}{data.get('form', {}).get('question1', {}).get('take_a_photo_showing_the_traditional_hives__note_to_trainer_dont_get_too_c')}" if float(data.get('form', {}).get('question1', {}).get('look_and_ask_how_many_hives_do_you_have_of_each_type_traditional')) > 0 else "",
-            'how_many_years_have_you_been_beekeeping__c': data.get('form', {}).get('question1', {}).get('ask_how_many_years_have_you_been_beekeeping', "") or "",
+            'take_a_photo_showing_the_modern_hives__c': f"{url_string}{data.get('form', {}).get('question1', {}).get('take_a_photo_showing_the_modern_hives_note_to_trainer_dont_get_too_close_to')}" if float(data.get('form', {}).get('question1', {}).get('look_and_ask_how_many_hives_do_you_have_of_each_type', 0)) > 0 else "",
+            'take_a_photo_of_the_transitional_hive__c': f"{url_string}{data.get('form', {}).get('question1', {}).get('take_a_photo_showing_the_transitional_hives__note_to_trainer_dont_get_too_c')}" if float(data.get('form', {}).get('question1', {}).get('look_and_ask_how_many_hives_do_you_have_of_each_type_transitional', 0)) > 0 else "",
             'did_you_start_beekeeping_before_feb_2023__c': data.get('form', {}).get('question1', {}).get('ask_did_you_start_beekeeping_before_february_2023', "") or "",
             
             # 3. Erosion Control
@@ -606,7 +651,8 @@ def process_best_practice_results_weeding(data: dict, sf_connection):
     farm_visit_type = data.get('form', {}).get('survey_type')
     bp_string = data.get('form', {}) if farm_visit_type == 'Farm Visit Full - ZM' else data.get('form', {}).get('best_practice_questions', {})
     results = str(bp_string.get('weeding', {}).get('which_product_have_you_used', '')).split(" ")
-    if farm_visit_type in ['Farm Visit Full - ZM', 'Farm Visit Full - KE', 'Farm Visit Full - PR']:
+    used_herbicide = bp_string.get('weeding', {}).get('used_herbicides', "") == 'yes'
+    if farm_visit_type in ['Farm Visit Full - ZM', 'Farm Visit Full - KE', 'Farm Visit Full - PR'] and used_herbicide:
         for result in results:
             best_practice_result_fields = {
                 'FV_Submission_ID__c': f'FV-{data.get('id')}',
@@ -712,8 +758,7 @@ def process_best_practice_results_pesticide_use_sprays(data: dict, sf_connection
 def process_best_practice_results_compost_and_manure(data: dict, sf_connection):
     request_id = data.get("id")
     farm_visit_type = data.get('form', {}).get('survey_type')
-    bp_string = data.get('form', {}) if farm_visit_type == 'Farm Visit Full - ZM' else data.get('form', {}).get('best_practice_questions', {})
-    results = str(bp_string.get('compost', {}).get('do_you_have_compost_manure', '')).split(" ")
+    results = str(data.get("form", {}).get('compost', {}).get('do_you_have_compost_manure', '')).split(" ")
     if farm_visit_type == 'Farm Visit Full - BU':
         for result in results:
             best_practice_result_fields = {
@@ -750,24 +795,27 @@ PART 4: Updating household record for FV - AA
 
 '''
 
-def update_household_fv(data: dict, sf_connection):
+def update_household_fvaa(data: dict, sf_connection):
     survey_detail = data.get('form', {}).get('@name')
+    request_id = data.get("id")
     household_fields = {
         "Latest_Farm_Visit_Record__r": {
-            "FV_Submission_ID__c": f'FV-{data.get("id")}'
-        }
+            "FV_Submission_ID__c": f'FV-{data.get("id")}',
+        },
+        "FV_AA_Visited__c": data.get("form", {}).get("case", {}).get("update", {}).get("FV_AA_Visited")
     }
     
-    if survey_detail == "Farm Visit - AA":
-        household_fields.update({
-            "FV_AA_Visited__c": data.get("form", {}).get("case", {}).get("update", {}).get("FV_AA_Visited"),
+    if survey_detail == "Farm Visit - AA": 
+        # Upsert to Salesforce
+        upsert_to_salesforce(
+            "Household__c",
+            "Id",
+            f'{data.get("form", {}).get("case", {}).get("@case_id", "")}',
+            household_fields,
+            sf_connection
+        )
+    else: 
+        logger.info({
+            "message": "Skipping 'Household Update - FV - AA' logic",
+            "request_id": request_id
         })
-        
-    # Upsert to Salesforce
-    upsert_to_salesforce(
-        "Household__c",
-        "Id",
-        f'{data.get("form", {}).get("case", {}).get("@case_id", "")}',
-        household_fields,
-        sf_connection
-    )

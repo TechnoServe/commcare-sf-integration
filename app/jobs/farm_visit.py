@@ -14,7 +14,7 @@ from utils.farm_visit_util import (
     process_best_practice_results_pesticide_use_sprays, 
     process_best_practice_results_pruning, 
     process_best_practice_results_weeding,
-    update_household_fv
+    update_household_fvaa
     )
 from utils.fis_util import (
     process_farm,
@@ -241,7 +241,7 @@ async def send_to_salesforce(data: dict, sf_connection):
             "message": "Updating household data - FV",
             "request_id": request_id
         })
-        update_household_fv(data, sf_connection)
+        update_household_fvaa(data, sf_connection)
     except Exception as e:
         logger.error({
             "message": "Error updating household data - FV",

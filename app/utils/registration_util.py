@@ -40,19 +40,34 @@ def process_household(data: dict, sf_connection):
     job_name = data.get('form', {}).get('@name', '')
     
     # Adding a small module for PR Registration
-    pr_registration = data.get('form', {}).get('survey_type', "") == 'Farm Visit Full - PR' and data.get('form', {}).get('new_farmer', "") == "1"
+    pr_registration_fv = data.get('form', {}).get('survey_type', "") == 'Farm Visit Full - PR' and data.get('form', {}).get('new_farmer', "") == "1"
     
     try:
         # 1. Farmer Registration Form and Participant Update
-        if job_name == 'Farmer Registration' and survey_detail in [
-            "New Farmer New Household", "New Farmer Existing Household", "Existing Farmer Change in FFG"]:
+        if (job_name == 'Farmer Registration' and survey_detail in [
+            "New Farmer New Household", 
+            "New Farmer Existing Household", 
+            "Existing Farmer Change in FFG"
+            ]) or job_name == "Field Day Farmer Registration":
             household_fields = {
                 "Name": data.get("form", {}).get("Household_Number"),
-                "Farm_Size__c": get_farm_size(data) or None,
-                "Number_of_Coffee_Plots__c": get_number_of_plots(data) or None
             }
+            
+            # 1.1. Process for Field Day Registration
+            if job_name == "Field Day Farmer Registration":
+                household_fields.update({
+                    "Farm_Size_Before__c": data.get("form", {}).get("participant_data", {}).get("farm_size_3_years_and_older", ""),
+                    "Farm_Size_After__c": data.get("form", {}).get("participant_data", {}).get("farm_size_under_3_years", "")
+                })
 
+            # 1.2. Process if the farmer is a primary farmer
             if primary_member or survey_detail == "Existing Farmer Change in FFG":
+                
+                household_fields.update({
+                    "Farm_Size__c": get_farm_size(data) or "",
+                    "Number_of_Coffee_Plots__c": get_number_of_plots(data) or ""
+                })
+                
                 upsert_to_salesforce(
                     "Household__c",
                     "Household_ID__c",
@@ -60,10 +75,9 @@ def process_household(data: dict, sf_connection):
                     household_fields,
                     sf_connection
                 )
+            
+            # 1.3. Process if farmer is secondary farmer
             elif not primary_member:
-                household_fields = {
-                    "Name": data.get("form", {}).get("Household_Number"),
-                }
 
                 upsert_to_salesforce(
                     "Household__c",
@@ -89,8 +103,8 @@ def process_household(data: dict, sf_connection):
                     sf_connection
                 )
 
-        # 3. Special Case - PR Registration
-        elif pr_registration:
+        # 3. Special Case 1 - PR Registration for Farm Visit
+        elif pr_registration_fv:
             household_fields = {
                 "Name": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details", {}).get("Household_Number", ""),
                 "Training_Group__r": {
@@ -108,6 +122,26 @@ def process_household(data: dict, sf_connection):
                 household_fields,
                 sf_connection
             )
+            
+        # # 4. Special Case 2 - PR Registration for Field Day
+        # elif pr_registration_fv:
+        #     household_fields = {
+        #         "Name": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details", {}).get("Household_Number", ""),
+        #         "Training_Group__r": {
+        #             "CommCare_Case_Id__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details", {}).get("Training_Group_Id", "")
+        #         },
+        #         "Farm_Size__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details", {}).get("Farm_Size", ""),
+        #         "Farm_Size_Before__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details", "").get("farm_size_3_years_and_older", ""),
+        #         "Farm_Size_After__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details", "").get("farm_size_under_3_years", "")
+        #     }
+
+        #     upsert_to_salesforce(
+        #         "Household__c",
+        #         "Household_ID__c",
+        #         data.get("form", {}).get("participant_data", {}).get("farmer_registration_details", "").get("Household_Id", ""),
+        #         household_fields,
+        #         sf_connection
+        #     )
         else:
             logger.info({
                 "message": "Skipping household upsert logic",
@@ -123,9 +157,10 @@ def process_household(data: dict, sf_connection):
 def process_participant(data: dict, sf_connection):
     survey_detail = data.get('form', {}).get('survey_detail')
     request_id = data.get("id")
+    job_name = data.get("form", {}).get("@name", "")
     
     # Adding a small module for PR Registration
-    pr_registration = data.get('form', {}).get('survey_type', "") == 'Farm Visit Full - PR' and data.get('form', {}).get('new_farmer', "") == "1"
+    pr_registration_fv = data.get('form', {}).get('survey_type', "") == 'Farm Visit Full - PR' and data.get('form', {}).get('new_farmer', "") == "1"
 
     try:
         # 1. New Farmer Registration
@@ -135,21 +170,28 @@ def process_participant(data: dict, sf_connection):
                 "Household__r": {
                    "Household_ID__c": data.get("form", {}).get("Household_Id")
                 },
-                "Training_Group__c": data.get("form", {}).get("Training_Group_Id", "") or None,
+                "Training_Group__c": data.get("form", {}).get("Training_Group_Id", "") or "",
                 "Other_Id_Number__c": get_other_id_number(data),
-                "Farm_Size__c": data.get("form", {}).get("Number_of_Trees") or None,
+                "Farm_Size__c": data.get("form", {}).get("Number_of_Trees") or "",
                 "Name": data.get("form", {}).get("First_Name"),
+                "Middle_Name__c": data.get("form", {}).get("Middle_Name", ""),
                 "Last_Name__c": data.get("form", {}).get("Last_Name"),
                 "Age__c": data.get("form", {}).get("Age"),
                 "Gender__c": data.get("form", {}).get("Gender"),
                 "Status__c": data.get("form", {}).get("Status"),
-                "Number_of_Coffee_Plots__c": data.get("form", {}).get("Number_of_Plots", "") or None,
+                "Number_of_Coffee_Plots__c": data.get("form", {}).get("Number_of_Plots", "") or "",
                 "Phone_Number__c": data.get("form", {}).get("Phone_Number", "") or None,
                 "Primary_Household_Member__c": data.get("form", {}).get("Primary_Household_Member", ""),
                 "Sent_to_OpenFn_Status__c": "Complete",
                 "Registration_Date__c": data.get("form", {}).get("registration_date", "") or None,
                 "Create_In_CommCare__c": False
             }
+            
+            # if job_name == "Field Day Farmer Registration":
+            #     participant_fields.update({
+            #         "Farm_Size_Before__c": data.get("form", {}).get("participant_data", {}).get("farm_size_3_years_and_older", ""),
+            #         "Farm_Size_After__c": data.get("form", {}).get("participant_data", {}).get("farm_size_under_3_years", "")
+            #     })          
 
             upsert_to_salesforce(
                 "Participant__c",
@@ -200,7 +242,7 @@ def process_participant(data: dict, sf_connection):
             )
         
         # 4. PR Registration
-        elif pr_registration:
+        elif pr_registration_fv:
             participant_fields = {
                 "TNS_Id__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("Farmer_Id", ""),
                 "Household__r": {
@@ -213,6 +255,7 @@ def process_participant(data: dict, sf_connection):
                 "Farm_Size_Before__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("farm_size_3_years_and_older", ""),
                 "Farm_Size_After__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("farm_size_under_3_years", ""),
                 "Name": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("First_Name", ""),
+                "Middle_Name__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("Middle_Name", ""),
                 "Last_Name__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("Last_Name", ""),
                 "Age__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("Age", ""),
                 "Gender__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("Gender", ""),
@@ -293,7 +336,7 @@ def process_participant_deactivation(data: dict, sf_connection):
 def get_farm_size(data):
     survey_detail = data.get('form', {}).get('survey_detail', '')
     job_name = data.get('form', {}).get('@name', '')
-    if (job_name == 'Farmer Registration' and survey_detail != "Existing Farmer Change in FFG") or job_name == 'Edit Farmer Details':
+    if (job_name == 'Farmer Registration' and survey_detail != "Existing Farmer Change in FFG") or job_name == 'Edit Farmer Details' or job_name == 'Field Day Farmer Registration':
         return data.get("form", {}).get("Number_of_Trees") or None
     elif data.get("form", {}).get("existing_farmer_change_in_ffg", {}).get("former_farmer_primary_secondary_yn") == "Yes":
         return data.get("form", {}).get("existing_farmer_change_in_ffg", {}).get("former_farmer_coffeetrees") or None
