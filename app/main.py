@@ -478,13 +478,15 @@ async def retry_record(destination_url_parameter, id):
                         "message": f"Processed successfully record with Request ID: '{request_id}' to {destination}",
                         "request_id": request_id,
                         "doc_id": doc_id,
-                        "run_retries": data.get("run_retries", 0) + 1
+                        "run_retries": data.get("run_retries", 0) + 1,
+                        "last_retried_at": firestore.SERVER_TIMESTAMP
                     })
                 else:
                     # If failed, update Firestore status to failed with error
                     update_firestore_status(doc_id, "failed", collection, {
                         "error": error,
-                        "run_retries": data.get("run_retries", 0) + 1
+                        "run_retries": data.get("run_retries", 0) + 1,
+                        "last_retried_at": firestore.SERVER_TIMESTAMP
                     })
                     logger.error({
                         "message": f"Failed to process record with Request ID: '{request_id}' to {destination}",
@@ -496,7 +498,8 @@ async def retry_record(destination_url_parameter, id):
                 # Handle any exceptions during processing
                 update_firestore_status(doc_id, "failed", collection, {
                     "error": str(e),
-                    "run_retries": data.get("run_retries", 0) + 1
+                    "run_retries": data.get("run_retries", 0) + 1,
+                    "last_retried_at": firestore.SERVER_TIMESTAMP
                 })
                 logger.error({
                     "message": "Error processing record",

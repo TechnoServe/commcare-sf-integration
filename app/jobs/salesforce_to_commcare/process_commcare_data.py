@@ -15,7 +15,7 @@ async def process_record(job_name, job_id, record, project_unique_id, record_num
             success, error = await send_to_commcare(xml_string, session, url, headers)
             if success:
                 processed_counter[0] += 1
-            log_message = f"Processed {job_name} record #{record_number}"
+            log_message = f"Processed {job_name} record #{record_number} with case ID: {record.get("commCareCaseId")}"
             log_message += f" with errors: {error}" if error else " successfully"
             logger.info(log_message)
             return success, error
@@ -85,22 +85,26 @@ def extract_xml_response(xml_response):
         # Parse the XML response
         root = ET.fromstring(xml_response)
 
-        # Define the namespace
-        namespace = {'ns': 'http://openrosa.org/http/response'}
+        # Extract namespace from the root tag
+        if '}' in root.tag:
+            namespace_uri = root.tag.split('}')[0].strip('{')
+            ns = {'ns': namespace_uri}
+        else:
+            ns = {}  # No namespace fallback
 
-        # Find the 'message' element
-        message_element = root.find('.//ns:message', namespace)
+        # Find the 'message' element with namespace (if present)
+        message_element = root.find('.//ns:message', ns) if ns else root.find('.//message')
 
         if message_element is None:
-            return None, "No message found"
+            return None, "No <message> element found"
 
-        # Extract the 'nature' attribute and the text content safely
-        message_nature = message_element.get('nature', "unknown")  # Avoid KeyError
-        message = message_element.text or ""  # Handle NoneType safely
-        
+        # Extract 'nature' attribute and clean message text
+        message_nature = message_element.attrib.get('nature', 'unknown')
+        message = (message_element.text or "").strip()  # Strip leading/trailing whitespace
+
         return message_nature, message
+
     except ET.ParseError:
-        logger.error("Failed to parse XML response")
         return None, "Invalid XML response"
 
         
