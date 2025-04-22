@@ -252,8 +252,8 @@ def process_participant(data: dict, sf_connection):
                     "CommCare_Case_Id__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details", {}).get("Training_Group_Id", "")
                 },
                 "Farm_Size__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("Farm_Size", ""),
-                "Farm_Size_Before__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("farm_size_3_years_and_older", ""),
-                "Farm_Size_After__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("farm_size_under_3_years", ""),
+                # "Farm_Size_Before__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("farm_size_3_years_and_older", ""),
+                # "Farm_Size_After__c": data.get("form", {}).get("participant_data", {}).get("farmer_registration_details").get("farm_size_under_3_years", ""),
                 "Name": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("First_Name", ""),
                 "Middle_Name__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("Middle_Name", ""),
                 "Last_Name__c": data.get("form", {}).get('participant_data', {}).get('farmer_registration_details', {}).get("Last_Name", ""),
