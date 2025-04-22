@@ -1,6 +1,7 @@
 .sfdx
 .venv
 .env
+venv
 service-account-key.json
 service-account-key-test.json
 service-account-key-prod.json

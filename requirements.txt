@@ -9,3 +9,7 @@ pytest-mock
 datetime
 aiohttp
 httpx
+SQLAlchemy>=2.0
+psycopg2-binary>=2.9
+geoalchemy2>=0.13
+shapely
