@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 import asyncio
 from google.cloud import firestore
 from google.cloud.firestore import FieldFilter
-from jobs import registration, attendance, training_observation, demoplot_observation, farm_visit  # Import job modules
+from jobs import registration, attendance, training_observation, demoplot_observation, farm_visit, wetmill_registration, wetmill_visit  # Import job modules
 from utils.firestore_client import save_to_firestore, update_firestore_status
 import os
 from simple_salesforce import Salesforce
@@ -12,6 +12,14 @@ from datetime import datetime
 import requests
 from jobs.salesforce_to_commcare import process_commcare_data
 import httpx
+
+from utils.postgres import init_db
+
+def main():
+    init_db()
+    logger.info({
+        "message": "Database initialized!",
+    })
 
 load_dotenv()  # Load environment variables
 
@@ -24,7 +32,8 @@ migrated_form_types = [
     "Attendance Light - Current Module", 'Participant', 
     "Training Group", "Training Session", "Project Role", 
     "Household Sampling", "Demo Plot Observation", "Farm Visit Full",
-    "Farm Visit - AA", "Field Day Farmer Registration", "Field Day Attendance Full"
+    "Farm Visit - AA", "Field Day Farmer Registration", "Field Day Attendance Full",
+    "Wet Mill Registration Form", "Wet Mill Visit"
     ]
 
 # Salesforce Authentication
@@ -112,12 +121,38 @@ def process_data(origin_url_parameter):
         })
         
         if job_name in migrated_form_types:
-            doc_id = save_to_firestore(data, job_name, "new", collection)
-            logger.info({
-                "message": "Data stored in Firestore",
-                "request_id": request_id,
-                "doc_id": doc_id
-            })
+
+            # PIMA Sustainability forwarded to Postgres
+            if job_name in ["Wet Mill Registration Form", "Wet Mill Visit"]:
+                if job_name == "Wet Mill Registration Form":
+                    success, error = wetmill_registration.save_wetmill_registration(data)
+                elif job_name == "Wet Mill Visit":
+                    success, error = wetmill_visit.save_form_visit(data)
+
+                logger.info({
+                    "message": "Data stored in Postgres",
+                    "request_id": request_id
+                })
+                if success:
+                    logger.info({
+                        "message": f"Processed successfully record with Request ID: '{request_id}' to {destination}",
+                        "request_id": request_id,
+                    })
+                else:
+                    logger.error({
+                        "message": f"Failed to process record with Request ID: '{request_id}' to {destination}",
+                        "request_id": request_id,
+                        "error": error
+                    })
+                    return jsonify({"error": f"Failed to save data to Postgres: {str(e)}"}), 500
+            # PIMA Agronomy forwared to Salesforce       
+            else:
+                doc_id = save_to_firestore(data, job_name, "new", collection)
+                logger.info({
+                    "message": "Data stored in Firestore",
+                    "request_id": request_id,
+                    "doc_id": doc_id
+                })
             
         else:
             logger.warning({
@@ -187,11 +222,13 @@ async def process_firestore_records(collection):
                 
             # 5. Demo Plot Observation    
             elif job_name == "Demo Plot Observation":
-                success, error = await demoplot_observation.send_to_salesforce(data.get("data"), sf_connection)
+                # success, error = await demoplot_observation.send_to_salesforce(data.get("data"), sf_connection)
+                success, error = await demoplot_observation.send_to_postgres(data.get("data"), sf_connection)
             
             # 6. Farm Visit
             elif job_name in ["Farm Visit Full", "Farm Visit - AA"]:
-                success, error = await farm_visit.send_to_salesforce(data.get("data"), sf_connection)
+                success, error = await farm_visit.send_to_salesforce(data.get("data"), sf_connection)  
+
 
             if success:
                 # If processing is successful, mark as completed
@@ -589,4 +626,6 @@ def status_count(collection):
         return jsonify({"error": f"Error retrieving status count: {str(e)}"}), 500
     
 if __name__ == "__main__":
+    main()
+    print("app running on port 8080")
     app.run(host="0.0.0.0", port=8080, debug=True)
