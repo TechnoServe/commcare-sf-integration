@@ -125,7 +125,7 @@ def process_data(origin_url_parameter):
             # PIMA Sustainability forwarded to Postgres
             if job_name in ["Wet Mill Registration Form", "Wet Mill Visit"]:
                 if job_name == "Wet Mill Registration Form":
-                    success, error = wetmill_registration.save_wetmill_registration(data)
+                    success, error = wetmill_registration.save_wetmill_registration(data, sf_connection)
                 elif job_name == "Wet Mill Visit":
                     success, error = wetmill_visit.save_form_visit(data)
 
@@ -162,6 +162,7 @@ def process_data(origin_url_parameter):
             })
             
     except Exception as e:
+        print(e)
         logger.error({
             "message": "Failed to save data to Firestore",
             "request_id": request_id,

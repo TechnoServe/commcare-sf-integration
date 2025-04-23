@@ -26,6 +26,8 @@ INFRASTRUCTURE_WATER_SOURCE_MAP = {
     "7": "Roof catchment (rainwater)"
 }
 
+# 1. Infrastructure Mapping 
+
 # Mapping for infrastructure needs repair options (1–16, 0 = None)
 INFRASTRUCTURE_REPAIR_MAP = {
     "1": "Constant, clean source of water",
@@ -64,7 +66,7 @@ INFRASTRUCTURE_NETWORK_COVERAGE_MAP = {
     "3": "4G"
 }
 
-# Mappings for Manager Needs Assessment survey
+# 2. Manager Needs Assessment Mapping
 MANAGER_DOCS_MAP = {
     "1": "Registration license",
     "2": "Tax number",
@@ -105,7 +107,7 @@ TECHNOLOGY_INFO_MAP = {
 }
 
 
-# Training Attendance Recording mappings
+# 3. Training Attendance Mapping
 TRAINING_TOPIC_MAP = {
     "1": "Machine Operation & Maintenance",
     "2": "Coffee Processing & Quality Control",
@@ -121,8 +123,7 @@ TRAINING_STATUS_MAP = {
     "2": "Refresher"
 }
 
-# Transformation for Waste Water Management survey
-# Map only 'material' code to label and any lagoon photo fields
+# 4. Waste Water Management Mapping
 
 # Lagoon material mapping
 LAGOON_MATERIAL_MAP = {
@@ -144,8 +145,125 @@ VETIVER_MAINTENANCE_MAP = {
     "0": "None"
 }
 
+# Advice to wetmill
+WASTE_WATER_ADVICE_TYPES = {
+    "1": "Pulp separation advice", 
+    "2": "Lagoon or pond maintenance or location advice", 
+    "3": "Vetiver wetland maintenance advice"
+}
 
-def transform_waste_water_management(survey_data, domain=None, instance_id=None):
+# Pulp
+WASTE_WATER_MANAGEMENT_METHODS = {
+    "1": "Open lagoon or pond", 
+    "2": "Vetiver Wetland", 
+    "0": "No wastewater management, released onto land or into river"
+}
+
+# 5. Water and Energy Use
+WATER_MANAGEMENT_PULP_SEPARATION = {
+    "1": "Pulp hopper", 
+    "2": "Re-circulation pump with skin tower", 
+    "eco-pulper": "Eco-pulper"
+}
+
+WATER_USE_METHODS = {
+    "1": "Water meter", 
+    "2": "Dip stick and tank size", 
+    "0": "No method used"
+}
+
+WATER_USE_EFFORTS = {
+    "1": "Turning water taps off when not in use", 
+    "2": "Recirculation pump", 
+    "3": "Eco pulper",
+    "4": "Repairing all leaks in tanks, pipes and gate valves", 
+    "0": "No efforts being made to reduce water consumption"
+}
+
+ENERGY_USE_SOURCES = {
+    "1": "Mains electricity", 
+    "2": "Diesel generator", 
+    "3": "Solar panels"
+}
+
+def update_photo_url(energy_use, field_name, base_url):
+    photo = energy_use.get(field_name)
+    energy_use[field_name] = f"{base_url}/{photo}" if photo else None
+    return energy_use
+
+base_url = 'https://www.commcarehq.org/a/tns-proof-of-concept/api/form/attachment/8ade6744-f875-4654-8abb-834cdfbb6aed'
+
+
+def transform_water_and_energy_use(survey_data):
+    transformed = survey_data.copy()
+
+     # 1. water_usage
+    water_usage = transformed.get('water_usage')
+    if isinstance(water_usage, dict):
+
+        methods = water_usage.get('what_method_is_used_to_measure_water_use')
+        if isinstance(methods, str) and methods in WATER_USE_METHODS:
+            water_usage['what_method_is_used_to_measure_water_use'] = WATER_USE_METHODS[methods]
+
+        efforts = water_usage.get('are_there_any_efforts_going_on_to_reduce_water_consumption')
+        if isinstance(efforts, str):
+            water_usage['are_there_any_efforts_going_on_to_reduce_water_consumption'] = [
+                WATER_USE_EFFORTS.get(code) # Get Multiple values e.g: 1 4 5 6
+                for code in efforts.split() # Split by empty space
+                if code in WATER_USE_EFFORTS # Map to text values
+            ]
+
+        # Add other efforts
+        other_efforts = water_usage.get('please_specify_the_other_efforts_going_on_to_reduce_the_water_consumption')
+        water_usage['are_there_any_efforts_going_on_to_reduce_water_consumption'].append(other_efforts)
+
+        is_there_a_record_book = water_usage.get("is_there_a_record_book")
+        water_usage['is_there_a_record_book'] = 'yes' if is_there_a_record_book == '1' else 'no'
+
+
+        pic = water_usage.get('photo_fo_the_office_records')
+        if pic:
+            water_usage['photo_fo_the_office_records'] = f'https://www.commcarehq.org/a/tns-proof-of-concept/api/form/attachment/8ade6744-f875-4654-8abb-834cdfbb6aed/{pic}'
+        else:
+            water_usage['photo_fo_the_office_records'] = None
+
+        water_meter_photo = water_usage.get('photo_of_water_meter')
+        if pic:
+            water_usage['photo_of_water_meter'] = f'https://www.commcarehq.org/a/tns-proof-of-concept/api/form/attachment/8ade6744-f875-4654-8abb-834cdfbb6aed/{water_meter_photo}'
+        else:
+            water_usage['photo_of_water_meter'] = None
+
+        transformed['water_usage'] = water_usage
+
+    # 2. energy_use
+    energy_use = transformed.get('energy_use')
+    if isinstance(energy_use, dict):
+        energy_source = energy_use.get('which_energy_source_is_used_at_the_wet_mill')
+        if isinstance(energy_source, str):
+            energy_use['which_energy_source_is_used_at_the_wet_mill'] = [
+                ENERGY_USE_SOURCES.get(code) # Get Multiple values e.g: 1 4 5 6
+                for code in energy_source.split() # Split by empty space
+                if code in ENERGY_USE_SOURCES # Map to text values
+            ]
+
+        energy_rb = energy_use.get("is_there_an_energy_record_book_to_track_energy")
+        energy_use['is_there_an_energy_record_book_to_track_energy'] = 'yes' if energy_rb == '1' else 'no'
+
+        photo_fields = [
+            'photo_of_the_electric_meter',
+            'photo_of_the_diesel_generator',
+            'photo_of_the_solar_panels',
+            'photo_of_energy_record_book'
+        ]
+
+        for field in photo_fields:
+            energy_use = update_photo_url(energy_use, field, base_url)
+
+        transformed['energy_use'] = energy_use
+
+    return transformed
+
+def transform_waste_water_management(survey_data):
 
     transformed = survey_data.copy()
     # 1. Lagoons mapping
@@ -182,11 +300,51 @@ def transform_waste_water_management(survey_data, domain=None, instance_id=None)
         pic = vet.get('photo')
         if pic:
             vet['photo'] = f'https://www.commcarehq.org/a/tns-proof-of-concept/api/form/attachment/8ade6744-f875-4654-8abb-834cdfbb6aed/{pic}'
+        else:
+            vet['photo'] = None
 
         transformed['vetiver_wetland'] = vet
+    
+    # 3. Advise to wetmill
+    advise = transformed.get('advice_to_wet_mill')
+    if isinstance(advise, dict):
+        advice_type = advise.get('advice_type')
+
+        if isinstance(advice_type, str):
+            advise['advice_type'] = [
+                WASTE_WATER_ADVICE_TYPES.get(code) # Get Advice types string EG: 1 4 5 6
+                for code in advice_type.split() # Split by empty space
+                if code in WASTE_WATER_ADVICE_TYPES # Map to text values
+            ]
+
+        transformed['advice_to_wet_mill'] = advise
+
+    # 4. Pulp
+    pulp = transformed.get('pulp_separator')
+    if isinstance(pulp, dict):
+        ww_methods = pulp.get('waste_water_management_methods')
+
+        if isinstance(ww_methods, str):
+            pulp['waste_water_management_methods'] = [
+                WASTE_WATER_MANAGEMENT_METHODS.get(code) 
+                for code in ww_methods.split() # Split by empty space
+                if code in WASTE_WATER_MANAGEMENT_METHODS # Map to text values
+            ]
+        
+        pulp_separation = pulp.get('how_is_the_pulp_separated')
+
+        if isinstance(ww_methods, str):
+            pulp['how_is_the_pulp_separated'] = [
+                WATER_MANAGEMENT_PULP_SEPARATION.get(code) 
+                for code in pulp_separation.split() # Split by empty space
+                if code in WATER_MANAGEMENT_PULP_SEPARATION # Map to text values
+            ]
+
+        transformed['pulp_separator'] = pulp
+
     return transformed
 
-def transform_training_attendance_recording(survey_data):
+def transform_wetmill_training(survey_data):
     transformed = survey_data.copy()
     # 1. training topic
     topic = transformed.get('training_topic')
@@ -200,6 +358,8 @@ def transform_training_attendance_recording(survey_data):
     pic = transformed.get('picture_of_trainees_group')
     if pic:
         transformed['picture_of_trainees_group'] = transformed['photo_of_cherry_receipts'] = f'https://www.commcarehq.org/a/tns-proof-of-concept/api/form/attachment/8ade6744-f875-4654-8abb-834cdfbb6aed/{pic}'
+    else:
+        transformed['picture_of_trainees_group'] = None
     return transformed
 
 def transform_manager_needs_assessment(survey_data):
@@ -284,10 +444,6 @@ def transform_manager_needs_assessment(survey_data):
     return transformed
 
 def transform_kpis(survey_data):
-    """
-    Transformation for KPIs survey:
-    - Converts 'photo_of_cherry_receipts' filename into full URL using domain and instanceID.
-    """
     transformed = survey_data.copy()
     pic = transformed.get('photo_of_cherry_receipts')
     if pic:
@@ -404,7 +560,6 @@ def transform_financials(survey_data):
     return clean(survey_data)
 
 # Transformation for employees survey
-
 def transform_employees(survey_data):
     """
     Specific transformation for Employees survey:
@@ -430,6 +585,7 @@ SURVEY_TRANSFORMATIONS = {
     "infrastructure": transform_infrastructure,
     "kpis": transform_kpis,
     "manager_needs_assessment": transform_manager_needs_assessment,
-    "training_attendance_recording": transform_training_attendance_recording,
-    "waste_water_management": transform_waste_water_management
+    "wet_mill_training": transform_wetmill_training,
+    "waste_water_management": transform_waste_water_management, 
+    "water_and_energy_use": transform_water_and_energy_use
 }

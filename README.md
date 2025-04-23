@@ -94,3 +94,30 @@ CREATE TABLE survey_question_responses (
   value_gps geometry(Point,4326)
 );
 
+### 5. Create Users
+CREATE TABLE tbl_users (
+    user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    sf_user_id VARCHAR(50),
+    user_name VARCHAR(255),
+    user_password VARCHAR(255) NOT NULL,
+    user_email VARCHAR(255),
+    mobile_no VARCHAR(50),
+    role_id UUID NOT NULL REFERENCES tbl_roles(role_id),
+    account_status VARCHAR DEFAULT 'active',
+    "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+### Create Project Roles 
+CREATE TABLE tbl_project_role (
+    pr_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES tbl_users(user_id),
+    project_id UUID NOT NULL REFERENCES tbl_projects(project_id),
+    role_id UUID NOT NULL REFERENCES tbl_roles(role_id),
+    "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE wetmills
+ADD COLUMN user_id UUID REFERENCES tbl_users(user_id);
+
