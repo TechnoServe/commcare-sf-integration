@@ -2,7 +2,8 @@ from flask import Flask, request, jsonify
 import asyncio
 from google.cloud import firestore
 from google.cloud.firestore import FieldFilter
-from jobs import registration, attendance, training_observation, demoplot_observation, farm_visit, wetmill_registration, wetmill_visit  # Import job modules
+from jobs.commcare_to_salesforce import registration, attendance, training_observation, demoplot_observation, farm_visit
+from jobs.commcare_to_postrgresql import wetmill_registration, wetmill_visit
 from utils.firestore_client import save_to_firestore, update_firestore_status
 import os
 from simple_salesforce import Salesforce
