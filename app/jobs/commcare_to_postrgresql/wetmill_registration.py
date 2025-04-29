@@ -17,7 +17,7 @@ def extract_location_string(location_string):
 
 
 def map_manager_role(value, role_map, role_other, default="undefined"): # changed default to "undefined". To make sure it is actually working.
-    return role_other if value == 99 else role_map.get(value, default)
+    return role_other if value == "99" else role_map.get(value, default)
 
 
 def save_wetmill_registration(data, sf):
