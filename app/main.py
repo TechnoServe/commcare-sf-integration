@@ -123,30 +123,27 @@ def process_data(origin_url_parameter):
         
         if job_name in migrated_form_types:
 
-            # PIMA Sustainability forwarded to Postgres
+            # PIMA Sustainability forwarded to PostgreSQL
             if job_name in ["Wet Mill Registration Form", "Wet Mill Visit"]:
                 if job_name == "Wet Mill Registration Form":
-                    success, error = wetmill_registration.save_wetmill_registration(data)
+                    success, error = wetmill_registration.save_wetmill_registration(data, sf_connection)
                 elif job_name == "Wet Mill Visit":
                     success, error = wetmill_visit.save_form_visit(data)
-
-                logger.info({
-                    "message": "Data stored in Postgres",
-                    "request_id": request_id
-                })
+                    
                 if success:
                     logger.info({
-                        "message": f"Processed successfully record with Request ID: '{request_id}' to {destination}",
+                        "message": f"Processed successfully record with Request ID: '{request_id}' to PostgreSQL",
                         "request_id": request_id,
                     })
                 else:
                     logger.error({
-                        "message": f"Failed to process record with Request ID: '{request_id}' to {destination}",
+                        "message": f"Failed to process record with Request ID: '{request_id}' to PostgreSQL",
                         "request_id": request_id,
                         "error": error
                     })
-                    return jsonify({"error": f"Failed to save data to Postgres: {str(e)}"}), 500
-            # PIMA Agronomy forwared to Salesforce       
+                    return jsonify({"error": f"Failed to save data to Postgres"}), 500 # Nice early exit!
+            
+            # PIMA Agronomy saved to firestore and later forwarded to Salesforce     
             else:
                 doc_id = save_to_firestore(data, job_name, "new", collection)
                 logger.info({
@@ -163,6 +160,7 @@ def process_data(origin_url_parameter):
             })
             
     except Exception as e:
+        print(e)
         logger.error({
             "message": "Failed to save data to Firestore",
             "request_id": request_id,

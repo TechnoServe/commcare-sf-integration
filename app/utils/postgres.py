@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 # Load .env variables
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = os.getenv("PG_PROD_DATABASE_URL")
 
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL not set in environment")
