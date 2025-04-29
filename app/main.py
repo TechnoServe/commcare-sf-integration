@@ -222,7 +222,7 @@ async def process_firestore_records(collection):
             # 5. Demo Plot Observation    
             elif job_name == "Demo Plot Observation":
                 # success, error = await demoplot_observation.send_to_salesforce(data.get("data"), sf_connection)
-                success, error = await demoplot_observation.send_to_postgres(data.get("data"), sf_connection)
+                success, error = await demoplot_observation.send_to_salesforce(data.get("data"), sf_connection)
             
             # 6. Farm Visit
             elif job_name in ["Farm Visit Full", "Farm Visit - AA"]:
