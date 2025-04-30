@@ -7,10 +7,11 @@ service-account-key-test.json
 service-account-key-prod.json
 pima-gcp-3092e823c8ce.json
 Dockerfile
+Dockerfiles
 tns-coffee-data-dd3990b8535e.json
 application_default_credentials.json
-application_default_credentials_prod.json
-application_default_credentials_mine.json
+application_default_credentials_prod.jsons
+application_default_credentials_mine.jsons
 **/__pycache__/
 git-diagnostics-2025-01-27-0850.zip
 app/utils/__pycache__/
