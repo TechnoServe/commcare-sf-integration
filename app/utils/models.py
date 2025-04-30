@@ -17,7 +17,7 @@ class Wetmill(Base):
     name = Column(String)
     mill_status = Column(String)
     exporting_status = Column(String)
-    programe = Column(String)
+    programme = Column(String)
     country = Column(String)
     manager_name = Column(String, nullable=True)
     manager_role = Column(String, nullable=True)
@@ -98,6 +98,7 @@ class User(Base):
     account_status = Column(String, nullable=False, default="active")  # ENUM("active", "inactive")
     createdAt = Column(DateTime, default=datetime.datetime.utcnow)
     updatedAt = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    # wet_mill_counter = Column(Integer, nullable=True)
 
     project_roles = relationship("ProjectRole", back_populates="user", cascade="all, delete-orphan")
 
@@ -114,3 +115,4 @@ class ProjectRole(Base):
     updatedAt = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
     user = relationship("User", back_populates="project_roles")
+    

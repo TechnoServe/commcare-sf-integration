@@ -106,7 +106,6 @@ TECHNOLOGY_INFO_MAP = {
     "6": "Do not use any digital tool"
 }
 
-
 # 3. Training Attendance Mapping
 TRAINING_TOPIC_MAP = {
     "1": "Machine Operation & Maintenance",

@@ -2,7 +2,8 @@ from flask import Flask, request, jsonify
 import asyncio
 from google.cloud import firestore
 from google.cloud.firestore import FieldFilter
-from jobs import registration, attendance, training_observation, demoplot_observation, farm_visit, wetmill_registration, wetmill_visit  # Import job modules
+from jobs.commcare_to_salesforce import registration, attendance, training_observation, demoplot_observation, farm_visit
+from jobs.commcare_to_postrgresql import wetmill_registration, wetmill_visit
 from utils.firestore_client import save_to_firestore, update_firestore_status
 import os
 from simple_salesforce import Salesforce
@@ -122,30 +123,27 @@ def process_data(origin_url_parameter):
         
         if job_name in migrated_form_types:
 
-            # PIMA Sustainability forwarded to Postgres
+            # PIMA Sustainability forwarded to PostgreSQL
             if job_name in ["Wet Mill Registration Form", "Wet Mill Visit"]:
                 if job_name == "Wet Mill Registration Form":
                     success, error = wetmill_registration.save_wetmill_registration(data, sf_connection)
                 elif job_name == "Wet Mill Visit":
                     success, error = wetmill_visit.save_form_visit(data)
-
-                logger.info({
-                    "message": "Data stored in Postgres",
-                    "request_id": request_id
-                })
+                    
                 if success:
                     logger.info({
-                        "message": f"Processed successfully record with Request ID: '{request_id}' to {destination}",
+                        "message": f"Processed successfully record with Request ID: '{request_id}' to PostgreSQL",
                         "request_id": request_id,
                     })
                 else:
                     logger.error({
-                        "message": f"Failed to process record with Request ID: '{request_id}' to {destination}",
+                        "message": f"Failed to process record with Request ID: '{request_id}' to PostgreSQL",
                         "request_id": request_id,
                         "error": error
                     })
-                    return jsonify({"error": f"Failed to save data to Postgres: {str(e)}"}), 500
-            # PIMA Agronomy forwared to Salesforce       
+                    return jsonify({"error": f"Failed to save data to Postgres"}), 500 # Nice early exit!
+            
+            # PIMA Agronomy saved to firestore and later forwarded to Salesforce     
             else:
                 doc_id = save_to_firestore(data, job_name, "new", collection)
                 logger.info({
@@ -224,7 +222,7 @@ async def process_firestore_records(collection):
             # 5. Demo Plot Observation    
             elif job_name == "Demo Plot Observation":
                 # success, error = await demoplot_observation.send_to_salesforce(data.get("data"), sf_connection)
-                success, error = await demoplot_observation.send_to_postgres(data.get("data"), sf_connection)
+                success, error = await demoplot_observation.send_to_salesforce(data.get("data"), sf_connection)
             
             # 6. Farm Visit
             elif job_name in ["Farm Visit Full", "Farm Visit - AA"]:
@@ -516,13 +514,15 @@ async def retry_record(destination_url_parameter, id):
                         "message": f"Processed successfully record with Request ID: '{request_id}' to {destination}",
                         "request_id": request_id,
                         "doc_id": doc_id,
-                        "run_retries": data.get("run_retries", 0) + 1
+                        "run_retries": data.get("run_retries", 0) + 1,
+                        "last_retried_at": firestore.SERVER_TIMESTAMP
                     })
                 else:
                     # If failed, update Firestore status to failed with error
                     update_firestore_status(doc_id, "failed", collection, {
                         "error": error,
-                        "run_retries": data.get("run_retries", 0) + 1
+                        "run_retries": data.get("run_retries", 0) + 1,
+                        "last_retried_at": firestore.SERVER_TIMESTAMP
                     })
                     logger.error({
                         "message": f"Failed to process record with Request ID: '{request_id}' to {destination}",
@@ -534,7 +534,8 @@ async def retry_record(destination_url_parameter, id):
                 # Handle any exceptions during processing
                 update_firestore_status(doc_id, "failed", collection, {
                     "error": str(e),
-                    "run_retries": data.get("run_retries", 0) + 1
+                    "run_retries": data.get("run_retries", 0) + 1,
+                    "last_retried_at": firestore.SERVER_TIMESTAMP
                 })
                 logger.error({
                     "message": "Error processing record",

@@ -5,7 +5,7 @@ from geoalchemy2.shape import from_shape
 from shapely.geometry import Point
 
 from utils.mappings import map_status, EXPORTING_STATUS_MAP, MANAGER_ROLE_MAP, WET_MILL_STATUS_MAP
-from simple_salesforce import Salesforce
+from simple_salesforce import Salesforce # I don't know if this is needed, but I left it in for now
 
 
 def extract_location_string(location_string):
@@ -16,8 +16,8 @@ def extract_location_string(location_string):
         return None
 
 
-def map_manager_role(value, role_map, role_other, default="Wet Mill Manager"):
-    return role_other if value == 99 else role_map.get(value, default)
+def map_manager_role(value, role_map, role_other, default="undefined"): # changed default to "undefined". To make sure it is actually working.
+    return role_other if value == "99" else role_map.get(value, default)
 
 
 def save_wetmill_registration(data, sf):
@@ -48,15 +48,16 @@ def save_wetmill_registration(data, sf):
         wet_mill_unique_id = form.get("wetmill_tns_id")
         if not wet_mill_unique_id:
             raise ValueError("Missing wetmill_tns_id")
+        
+        commcare_case_id = form.get("subcase_0", {}).get("case", {}).get("@case_id")
 
         url_string = (
-            f'https://www.commcarehq.org/a/{data.get("domain")}/api/form/attachment/'
-            f'{form.get("meta", {}).get("instanceID")}/'
+            f'https://www.commcarehq.org/a/{data.get("domain")}/api/form/attachment/{form.get("meta", {}).get("instanceID")}/'
         )
 
         # Get user from Salesforce via Project_Role__c > Staff__c > sf_user_id
         try:
-            project_role_id = form["subcase_0"]["case"]["index"]["parent"]["#text"]
+            project_role_id = form.get("subcase_0", {}).get("case", {}).get("index", {}).get("parent", {}).get("#text")
         
             sf_result = sf.query(
                 f"SELECT Id, Staff__c FROM Project_Role__c WHERE Id = '{project_role_id}'"
@@ -72,29 +73,33 @@ def save_wetmill_registration(data, sf):
             user_id = None
 
         # Upsert wetmill by wet_mill_unique_id
+        
+        # Changing this from wet_mill_unique_id to commcare_case_id
+        
         wetmill = session.query(Wetmill).filter_by(
-            wet_mill_unique_id=wet_mill_unique_id
+            commcare_case_id=commcare_case_id
         ).first()
 
         if wetmill:
             wetmill.name = wetmill_details.get("mill_registered_name")
-            wetmill.commcare_case_id=form["subcase_0"]["case"]["@case_id"],
+            wetmill.wet_mill_unique_id=form.get("wetmill_tns_id")
             wetmill.mill_status = wet_mill_status
             wetmill.exporting_status = exporting_status
             wetmill.manager_name = wetmill_details.get("manager_name")
             wetmill.comments = wetmill_details.get("comments")
-            wetmill.wetmill_counter = int(wetmill_details.get("wetmill_counter") or 0)
-            wetmill.ba_signature = wetmill_details.get("ba_signature")
-            wetmill.manager_signature = wetmill_details.get("manager_signature")
+            # wetmill.wetmill_counter = int(wetmill_details.get("wetmill_counter") or 0) # Bouncing this -- Only update for BA.
+            wetmill.ba_signature = f'{url_string}{wetmill_details.get("ba_signature")}'
+            wetmill.manager_signature = f'{url_string}{wetmill_details.get("manager_signature")}'
             wetmill.tor_page_picture = (
                 f'{url_string}{wetmill_details.get("tor_page_picture")}'
                 if wetmill_details.get("tor_page_picture") else ''
             )
             wetmill.manager_role = manager_role
-            wetmill.programe = form.get("programe")
+            wetmill.programme = form.get("programme")
             wetmill.country = form.get("country")
             wetmill.registration_date = form.get("registration_date")
             wetmill.user_id = user_id
+            wetmill.date_ba_signature = form.get("date_ba_signature")
         else:
             wetmill = Wetmill(
                 wet_mill_unique_id=wet_mill_unique_id,
@@ -104,15 +109,15 @@ def save_wetmill_registration(data, sf):
                 exporting_status=exporting_status,
                 manager_name=wetmill_details.get("manager_name"),
                 comments=wetmill_details.get("comments"),
-                wetmill_counter=int(wetmill_details.get("wetmill_counter") or 0),
-                ba_signature=wetmill_details.get("ba_signature"),
-                manager_signature=wetmill_details.get("manager_signature"),
+                # wetmill_counter=int(wetmill_details.get("wetmill_counter") or 0), Bouncing this -- Only update for BA.
+                ba_signature=f'{url_string}{wetmill_details.get("ba_signature")}',
+                manager_signature=f'{url_string}{wetmill_details.get("manager_signature")}',
                 tor_page_picture=(
                     f'{url_string}{wetmill_details.get("tor_page_picture")}'
                     if wetmill_details.get("tor_page_picture") else ''
                 ),
                 manager_role=manager_role,
-                programe=form.get("programe"),
+                programme=form.get("programme"),
                 country=form.get("country"),
                 registration_date=form.get("registration_date"),
                 user_id=user_id

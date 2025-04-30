@@ -2,7 +2,7 @@ from datetime import datetime
 import html
 
 def safe_escape(value):
-    return html.escape(str(value)) if value else ""
+    return html.escape(str(value)).replace('/', '&#x2F;') if value else ""
 
 def safe_int(value):
     """
@@ -62,7 +62,7 @@ def generate_xml(job_name, job_id, data, project_unique_id):
                 <National_ID_Number>{safe_escape(national_id_number)}</National_ID_Number>
                 <Household_Id>{safe_escape(data.get("householdId", ""))}</Household_Id>
                 <Household_Number>{safe_int(data.get("HHID", "")) if data.get("HHID", "") else ""}</Household_Number>
-                <Number_of_Trees>{safe_int(data.get("householdFarmSize", ""))}</Number_of_Trees>
+                <Number_of_Trees>{data.get("householdFarmSize", "")}</Number_of_Trees>
                 <Parent_Id>{safe_escape(data.get("trainingGroupId", ""))}</Parent_Id>
                 <Status>{safe_escape(data.get("status", ""))}</Status>
                 <Primary_Household_Member>{safe_escape(data.get("participantPrimaryHouseholdMember", ""))}</Primary_Household_Member>
@@ -89,7 +89,7 @@ def generate_xml(job_name, job_id, data, project_unique_id):
                         <n0:National_ID_Number>{safe_escape(national_id_number)}</n0:National_ID_Number>
                         <n0:Household_Id>{safe_escape(data.get("householdId", ""))}</n0:Household_Id>
                         <n0:Household_Number>{safe_int(data.get("HHID", ""))}</n0:Household_Number>
-                        <n0:Number_of_Trees>{safe_int(data.get("householdFarmSize", ""))}</n0:Number_of_Trees>
+                        <n0:Number_of_Trees>{data.get("householdFarmSize", "")}</n0:Number_of_Trees>
                         <n0:Status>{safe_escape(data.get("status", ""))}</n0:Status>
                         <n0:Primary_Household_Member>{safe_escape(data.get("participantPrimaryHouseholdMember", ""))}</n0:Primary_Household_Member>
                         <n0:Name_Household_Concat>{safe_escape(fullname)} {safe_escape(data.get("HHID", ""))}-{safe_escape(farmernumber)}</n0:Name_Household_Concat>
@@ -164,8 +164,9 @@ def generate_xml(job_name, job_id, data, project_unique_id):
         
         return f'''<?xml version="1.0" ?>
             <data xmlns="http://openrosa.org/formdesigner/3FA54AF1-A35E-4163-BDB0-5094F709753C" xmlns:jrm="http://dev.commcarehq.org/jr/xforms" name="New Training Session" uiVersion="1" version="148">
-                <Session_1_Date>{safe_escape(data.get("sessionOneDate", ""))}</Session_1_Date>
-                <Session_2_Date>{safe_escape(data.get("sessionTwoDate", ""))}</Session_2_Date>
+                <Session_1_Date/>
+                <Session_2_Date/>
+                <Session_Status>{data.get("sessionStatus", "")}</Session_Status>
                 <Training_Group_Name>{safe_escape(data.get("trainingGroupName", ""))}</Training_Group_Name>
                 <Secondary_Parent_Id>{safe_escape(data.get("trainingGroupResponsibleStaff", ""))}</Secondary_Parent_Id>
                 <Module_Name>{safe_escape(data.get("trainingModuleName", ""))}</Module_Name>
@@ -190,8 +191,9 @@ def generate_xml(job_name, job_id, data, project_unique_id):
                             <n0:Current_Previous>{data.get("currentPrevious", "")}</n0:Current_Previous>
                             <n0:Current_Previous_Name>({safe_escape(data.get("currentPrevious", ""))}) {safe_escape(data.get("trainingModuleName", ""))}</n0:Current_Previous_Name>
                             <n0:Parent_Id>{safe_escape(data.get("trainingGroupCommCareId", ""))}</n0:Parent_Id>
-                            <n0:Session_1_Date>{safe_escape(data.get("sessionOneDate", ""))}</n0:Session_1_Date>
-                            <n0:Session_2_Date>{safe_escape(data.get("sessionTwoDate", ""))}</n0:Session_2_Date>
+                            <n0:Session_1_Date/>
+                            <n0:Session_2_Date/>
+                            <n0:Session_Status>{data.get("sessionStatus", "")}</n0:Session_Status>
                             <n0:Training_Group_Name>{safe_escape(data.get("trainingGroupName", ""))}</n0:Training_Group_Name>
                             <n0:Secondary_Parent_Id>{safe_escape(data.get("trainingGroupResponsibleStaff", ""))}</n0:Secondary_Parent_Id>
                         </n0:update>
