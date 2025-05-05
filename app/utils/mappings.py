@@ -567,7 +567,7 @@ def transform_employees(survey_data):
     """
     transformed = {}
     for key, val in survey_data.items():
-        if key in ('accountant', 'sustainability_officer') and val in ('1', '0'):
+        if key in ('accountant', 'sustainability_officer', 'community_manager') and val in ('1', '0'):
             transformed[key] = 'yes' if val == '1' else 'no'
         else:
             try:
