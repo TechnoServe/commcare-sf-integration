@@ -19,7 +19,8 @@ ALLOWED_SURVEYS = [
     "manager_needs_assessment",
     "wet_mill_training",
     "waste_water_management", 
-    "water_and_energy_use"
+    "water_and_energy_use",
+    "routine_visit"
 ]
 
 
@@ -61,6 +62,7 @@ def save_form_visit(data, wetmill_id=None, user_id=None):
 
     surveys = form.get("surveys", {})
     completed = form.get("completed_surveys", {})
+    url_string = f'https://www.commcarehq.org/a/{data.get("domain")}/api/form/attachment/{data.get("form", {}).get("meta", {}).get("instanceID")}'
     for survey_name, content in surveys.items():
         if survey_name not in ALLOWED_SURVEYS:
             print('skipping survey: ' + survey_name)
@@ -72,7 +74,7 @@ def save_form_visit(data, wetmill_id=None, user_id=None):
         transform_func = SURVEY_TRANSFORMATIONS.get(survey_name)
 
         if transform_func:
-            content = transform_func(content)
+            content = transform_func(content, url_string)
 
         # Determine completed date
         date_key = f"{survey_name}_date"

@@ -16,8 +16,8 @@ def extract_location_string(location_string):
         return None
 
 
-def map_manager_role(value, role_map, role_other, default="undefined"): # changed default to "undefined". To make sure it is actually working.
-    return role_other if value == "99" else role_map.get(value, default)
+def map_manager_role(value, role_map, role_other, survey_type, default="undefined"): # changed default to "undefined". To make sure it is actually working.
+    return role_other if value == "99" else role_map.get(survey_type, {}).get(value, default)
 
 
 def save_wetmill_registration(data, sf):
@@ -42,7 +42,8 @@ def save_wetmill_registration(data, sf):
         manager_role = map_manager_role(
             wetmill_details.get("manager_role"),
             MANAGER_ROLE_MAP,
-            wetmill_details.get("manager_role_other")
+            wetmill_details.get("manager_role_other"),
+            form.get("survey_type")
         )
 
         wet_mill_unique_id = form.get("wetmill_tns_id")
