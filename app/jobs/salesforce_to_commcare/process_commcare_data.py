@@ -24,7 +24,7 @@ async def process_record(job_name, job_id, record, project_unique_id, record_num
             return False, str(e)
 
 async def process_records_parallel(data, job_name):
-    project_unique_id = data.get("uniqueProjectKey", None)
+    project_unique_id = data.get("uniqueProjectKey", "").lower()
     
     records_name = {
         "Participant": "participants",

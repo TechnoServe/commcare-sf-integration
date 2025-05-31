@@ -116,17 +116,25 @@ TECHNOLOGY_INFO_MAP = {
     "6": "Do not use any digital tool"
 }
 
-# 3. Training Attendance Mapping
+# 3. Training Attendance Mapping (Dropped Burundi topics)
 TRAINING_TOPIC_MAP = {
-    "1": "Machine Operation & Maintenance",
-    "2": "Coffee Processing & Quality Control",
-    "3": "Sustainability Standards Overview",
-    "4": "Social Responsibility & Ethics",
-    "5": "Occupation Health and Security",
-    "6": "Environmental Responsibility",
-    "7": "Gender Inclusion",
-    "8": "Bookkeeping & Financial Management"
+    '1': 'Environmental Responsibility',
+    '2': 'Social Responsibility and Ethics',
+    '3': 'Gender Training',
+    '4': 'Occupational Health and Safety',
+    '5': 'Sustainability Standards Overview',
+    '6': 'Finance and Bookkeeping',
+    '7': 'Post-Harvest Coffee Processing and Quality Training',
+    '8': 'TASQ Overview ',
+    '9': 'Inclusive Training',
+    '10': 'Gender Training',
+    '11': 'Regenerative Agriculture',
+    '12': 'Farm-level Traceability',
+    '13': 'Cooperative Good Governance',
+    '14': 'Bookkeeping',
+    '15': 'Quality Control and Processing Overview'
 }
+
 TRAINING_STATUS_MAP = {
     "1": "New",
     "2": "Refresher"
