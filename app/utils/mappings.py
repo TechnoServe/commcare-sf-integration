@@ -10,11 +10,11 @@ EXPORTING_STATUS_MAP = {
 }
 
 MANAGER_ROLE_MAP = {
-    "Wet Mill Visit - ET": {
+    "Wet Mill Registration - ET": {
         "1": "General manager",
         "2": "Site/factory manager"
     },
-    "Wet Mill Visit - BU": {
+    "Wet Mill Registration - BU": {
         "1": "Wet mill manager"
     }
 }
