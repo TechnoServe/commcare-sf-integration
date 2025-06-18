@@ -31,7 +31,9 @@ def save_wetmill_registration(data, sf):
         wetmill_details = form.get("wet_mill_details", {})
 
         location = meta.get("location", {}).get("#text", "")
+        location_2 = wetmill_details.get("office_gps", None)
         point = extract_location_string(location)
+        point_2 = extract_location_string(location_2)
 
         exporting_status = map_status(
             wetmill_details.get("exporting_status"), EXPORTING_STATUS_MAP
@@ -101,6 +103,13 @@ def save_wetmill_registration(data, sf):
             wetmill.registration_date = form.get("registration_date")
             wetmill.user_id = user_id
             wetmill.date_ba_signature = form.get("date_ba_signature")
+            wetmill.office_entrance_picture = (
+                f'{url_string}{wetmill_details.get("office_entrance_picture")}'
+                if wetmill_details.get("office_entrance_picture") else ''
+            )
+            wetmill.office_gps = (
+                from_shape(point_2, srid=4326) if point_2 else None
+            )
         else:
             wetmill = Wetmill(
                 wet_mill_unique_id=wet_mill_unique_id,

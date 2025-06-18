@@ -119,9 +119,9 @@ TECHNOLOGY_INFO_MAP = {
 # 3. Training Attendance Mapping (Dropped Burundi topics)
 TRAINING_TOPIC_MAP = {
     '1': 'Environmental Responsibility',
-    '2': 'Social Responsibility and Ethics',
+    '2': 'Social Responsibility and Ethics',
     '3': 'Gender Training',
-    '4': 'Occupational Health and Safety',
+    '4': 'Occupational Health and Safety',
     '5': 'Sustainability Standards Overview',
     '6': 'Finance and Bookkeeping',
     '7': 'Post-Harvest Coffee Processing and Quality Training',
