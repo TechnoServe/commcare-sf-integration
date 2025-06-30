@@ -121,8 +121,8 @@ def process_farm_visit(data: dict, sf_connection):
         farm_visit_fields.update({
             "Deforested_Farm__c": True if data.get("form", {}).get("planted_on_land_that_have_previously_been_planted_with_woodland_or_forest", "") in ["1", "2"] else False,
             "Deforested_Previously_planted_trees__c": {
-                "1": "Natural Woodland",
-                "2": "Eucalyptus or other plantation tree",
+                "1": "Natural woodland or forest",
+                "2": "Eucalyptus or other tree plantation",
                 "0": "No sign the field(s) was previously woodland or forest."
             }.get(data.get("form", {}).get("planted_on_land_that_have_previously_been_planted_with_woodland_or_forest", ""), "")
         })
