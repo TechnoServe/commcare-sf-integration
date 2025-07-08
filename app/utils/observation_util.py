@@ -26,9 +26,9 @@ def process_training_observation(data: dict, sf_connection):
         "Photo_of_Facilitator_URL__c": url_string + data.get("form", {}).get("Photo", ""),
         "Farmer_Trainer_Signature__c": url_string + data.get("form", {}).get("Farmer_Trainer_Signature_Section", {}).get("Farmer_Trainer_Signature", ""),
         "Observer_Signature__c": url_string + data.get("form", {}).get("Observer_Signature_Section", {}).get("Observer_Signature", ""),
-        "Observation_Location__Latitude__s": gps_coordinates.split(" ")[0],
-        "Observation_Location__Longitude__s": gps_coordinates.split(" ")[1],
-        "Altitude__c": gps_coordinates.split(" ")[2]
+        "Observation_Location__Latitude__s": gps_coordinates.split(" ")[0] or "",
+        "Observation_Location__Longitude__s": gps_coordinates.split(" ")[1] or "",
+        "Altitude__c": gps_coordinates.split(" ")[2] or ""
     }
     upsert_to_salesforce(
         "Observation__c",
