@@ -35,7 +35,7 @@ def process_farm_visit(data: dict, sf_connection):
     survey_detail = data.get('form', {}).get('@name')
     farm_visit_type = data.get("form", {}).get("survey_type", "")
     url_string = f'https://www.commcarehq.org/a/{data.get("domain")}/api/form/attachment/{data.get("form", {}).get("meta", {}).get("instanceID")}/'
-    gps_coordinates = (data.get("form", {}).get("gps_coordinates", "") or "").split(" ")
+    gps_coordinates = (data.get("form", {}).get("best_practice_questions", {}).get("gps_coordinates", "") or "").split(" ") if farm_visit_type == "Farm Visit Full - ET" else (data.get("form", {}).get("gps_coordinates", "") or "").split(" ")
     new_farmer = data.get("form", {}).get("new_farmer", "") == '1'
 
     # Generate common fields
