@@ -3,8 +3,8 @@ from utils.postgres import SessionLocal
 from sqlalchemy.exc import SQLAlchemyError
 from geoalchemy2.shape import from_shape
 from shapely.geometry import Point
-
-from utils.mappings import map_status, EXPORTING_STATUS_MAP, MANAGER_ROLE_MAP, WET_MILL_STATUS_MAP
+from utils.logging_config import logger
+from utils.mappings import map_status, EXPORTING_STATUS_MAP, MANAGER_ROLE_MAP, WET_MILL_STATUS_MAP, VERTICAL_INTEGRATION_MAP
 from simple_salesforce import Salesforce # I don't know if this is needed, but I left it in for now
 
 
@@ -38,6 +38,11 @@ def save_wetmill_registration(data, sf):
         exporting_status = map_status(
             wetmill_details.get("exporting_status"), EXPORTING_STATUS_MAP
         )
+        
+        vertical_integration = map_status(
+            wetmill_details.get("vertical_integration"), VERTICAL_INTEGRATION_MAP
+        )
+        
         wet_mill_status = map_status(
             wetmill_details.get("mill_status"), WET_MILL_STATUS_MAP
         )
@@ -88,6 +93,7 @@ def save_wetmill_registration(data, sf):
             wetmill.wet_mill_unique_id=form.get("wetmill_tns_id")
             wetmill.mill_status = wet_mill_status
             wetmill.exporting_status = exporting_status
+            wetmill.vertical_integration = vertical_integration
             wetmill.manager_name = wetmill_details.get("manager_name")
             wetmill.comments = wetmill_details.get("comments")
             # wetmill.wetmill_counter = int(wetmill_details.get("wetmill_counter") or 0) # Bouncing this -- Only update for BA.
@@ -110,6 +116,11 @@ def save_wetmill_registration(data, sf):
             wetmill.office_gps = (
                 from_shape(point_2, srid=4326) if point_2 else None
             )
+            logger.info({
+                "message": "Updated existing Wetmill",
+                "commcare_case_id": commcare_case_id,
+                "wet_mill_unique_id": wet_mill_unique_id
+            })
         else:
             wetmill = Wetmill(
                 wet_mill_unique_id=wet_mill_unique_id,
@@ -133,7 +144,11 @@ def save_wetmill_registration(data, sf):
                 user_id=user_id
             )
             session.add(wetmill)
-
+            logger.info({
+                "message": "Added new Wetmill",
+                "commcare_case_id": commcare_case_id,
+                "wet_mill_unique_id": wet_mill_unique_id
+            })
         session.commit()
         return True, None
 

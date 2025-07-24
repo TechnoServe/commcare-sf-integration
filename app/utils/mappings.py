@@ -9,13 +9,19 @@ EXPORTING_STATUS_MAP = {
     "2": "Non exporter",
 }
 
+VERTICAL_INTEGRATION_MAP = {
+    "1": "Yes",
+    "0": "No",
+}
+
 MANAGER_ROLE_MAP = {
     "Wet Mill Registration - ET": {
         "1": "General manager",
         "2": "Site/factory manager"
     },
     "Wet Mill Registration - BU": {
-        "1": "Wet mill manager"
+        "1": "General manager",
+        "2": "Site/factory manager"
     }
 }
 
@@ -78,11 +84,33 @@ INFRASTRUCTURE_NETWORK_COVERAGE_MAP = {
 
 # 2. Manager Needs Assessment Mapping
 MANAGER_DOCS_MAP = {
-    "1": "Registration license",
-    "2": "Tax number",
-    "3": "Production or operational license for current year",
-    "4": "Export license/number",
-    "0": "None"
+    
+    # Ethiopia
+    "Wet Mill Visit - ET": {
+        "1": "Registration license",
+        "2": "Tax number",
+        "3": "Production or operational license for current year",
+        "4": "Export license/number",
+        "0": "None"
+    },
+    
+    # Kenya
+    "Wet Mill Visit - KE": {
+        "1": "Tax number",
+        "2": "Cooperative registration with the ministry of cooperatives",
+        "3": "Wet mill operation permit from the county",
+        "4": "County business permit",
+        "0": "None"
+    },
+
+    # Burundi
+    "Wet Mill Visit - BU": {
+        "1": "Registration license",
+        "2": "Tax number",
+        "3": "Production or operational license for current year",
+        "4": "Export license/number",
+        "0": "None"
+    },
 }
 
 COFFEE_SALE_PERIOD_MAP = {
@@ -220,15 +248,15 @@ FARMER_PAYMENT_METHOD = {
     "2": "Broker"
 }
 
-def update_photo_url(energy_use, field_name, base_url, form_data):
-    photo = energy_use.get(field_name)
-    energy_use[field_name] = f"{base_url}/{form_data.get('id')}/{photo}" if photo else None
+def update_photo_url(energy_use, field_name, url_string):
+    pic = energy_use.get(field_name)
+    energy_use[field_name] = f"{url_string}/{pic}" if pic else None
     return energy_use
 
 base_url = f'https://www.commcarehq.org/a/tns-proof-of-concept/api/form/attachment/'
 
 
-def transform_water_and_energy_use(survey_data, url_string):
+def transform_water_and_energy_use(survey_data, url_string, form):
     transformed = survey_data.copy()
 
      # 1. water_usage
@@ -262,7 +290,7 @@ def transform_water_and_energy_use(survey_data, url_string):
             water_usage['photo_fo_the_office_records'] = None
 
         water_meter_photo = water_usage.get('photo_of_water_meter')
-        if pic:
+        if water_meter_photo:
             water_usage['photo_of_water_meter'] = f'{url_string}/{water_meter_photo}'
         else:
             water_usage['photo_of_water_meter'] = None
@@ -291,13 +319,13 @@ def transform_water_and_energy_use(survey_data, url_string):
         ]
 
         for field in photo_fields:
-            energy_use = update_photo_url(energy_use, field, base_url)
+            energy_use = update_photo_url(energy_use, field, url_string)
 
         transformed['energy_use'] = energy_use
 
     return transformed
 
-def transform_waste_water_management(survey_data, url_string):
+def transform_waste_water_management(survey_data, url_string, form):
 
     transformed = survey_data.copy()
     # 1. Lagoons mapping
@@ -378,7 +406,7 @@ def transform_waste_water_management(survey_data, url_string):
 
     return transformed
 
-def transform_wetmill_training(survey_data, url_string):
+def transform_wetmill_training(survey_data, url_string, form):
     transformed = survey_data.copy()
     # 1. training topic
     topic = transformed.get('training_topic')
@@ -405,9 +433,7 @@ def transform_wetmill_training(survey_data, url_string):
     
     return transformed
 
-
-
-def transform_manager_needs_assessment(survey_data, url_string):
+def transform_manager_needs_assessment(survey_data, url_string, form):
     """
     Manager Needs Assessment survey:
     - Map business_and_operations subfields (documents, coffee_sale_period, primary_buyer
@@ -424,9 +450,9 @@ def transform_manager_needs_assessment(survey_data, url_string):
         docs = bo.get('documents')
         if isinstance(docs, str):
             bo['documents'] = [
-                MANAGER_DOCS_MAP.get(code)
+                MANAGER_DOCS_MAP.get(form.get("survey_type"), {}).get(code)
                 for code in docs.split()
-                if MANAGER_DOCS_MAP.get(code)
+                if MANAGER_DOCS_MAP.get(form.get("survey_type"), {}).get(code)
             ]
         # Coffee sale period
         csp = bo.get('coffee_sale_period')
@@ -495,7 +521,7 @@ def transform_manager_needs_assessment(survey_data, url_string):
 
     return transformed
 
-def transform_kpis(survey_data, url_string):
+def transform_kpis(survey_data, url_string, form):
     transformed = survey_data.copy()
     pic = transformed.get('photo_of_cherry_receipts')
     if pic:
@@ -507,7 +533,7 @@ def transform_kpis(survey_data, url_string):
         
     return transformed
 
-def transform_infrastructure(survey_data, url_string):
+def transform_infrastructure(survey_data, url_string, form):
     """
     Transformation for Infrastructure survey:
     - Map 'main_water_source' numeric codes to descriptive text.
@@ -547,7 +573,7 @@ def transform_infrastructure(survey_data, url_string):
     
     return transformed
 
-def transform_cpqi(survey_data, url_string):
+def transform_cpqi(survey_data, url_string, form):
     """
     For CPQI convert all values '1'/'0' to yes or no.
     """
@@ -598,7 +624,7 @@ def transform_cpqi(survey_data, url_string):
 
     return transformed
 
-def transform_financials(survey_data, url_string):
+def transform_financials(survey_data, url_string, form):
     """
     - Remove the 'survey_6___financials' key.
     - Remove any keys ending with '_label'.
@@ -619,7 +645,7 @@ def transform_financials(survey_data, url_string):
     return clean(survey_data)
 
 # Transformation for employees survey
-def transform_employees(survey_data, url_string):
+def transform_employees(survey_data, url_string, form):
     """
     Specific transformation for Employees survey:
     - Maps 'accountant' and 'sustainability_officer' from "1"/"0" to "yes"/"no"
@@ -637,7 +663,7 @@ def transform_employees(survey_data, url_string):
     return transformed
 
 # Transformation of Routine visit
-def transformation_routine_visit(survey_data, url_string):
+def transformation_routine_visit(survey_data, url_string, form):
 
     transformed = {}
     
@@ -664,7 +690,7 @@ def transformation_routine_visit(survey_data, url_string):
         
         
 # Transformation for Cherry Weekly Price
-def transform_cherry_weekly_price(survey_data, url_string):
+def transform_cherry_weekly_price(survey_data, url_string, form):
     transformed = {}
     
     transformed["date"] = survey_data.get("cherry_week")

@@ -21,6 +21,7 @@ from utils.fis_util import (
     process_varieties,
     update_household_fis
 )
+from utils.participant_check_util import process_participant_check_farm_visit_aa
 from utils.logging_config import logger
 import os
 
@@ -296,6 +297,21 @@ async def send_to_salesforce(data: dict, sf_connection):
     except Exception as e:
         logger.error({
             "message": "Error updating household data - FIS",
+            "request_id": request_id,
+            "error": str(e)
+        })
+        return False, str(e)
+    
+    # Step 17: Upsert participant attendance check results - Farm Visit AA
+    try:
+        logger.info({
+            "message": "Upserting participant attendance check results - Farm Visit AA",
+            "request_id": request_id
+        })
+        process_participant_check_farm_visit_aa(data, sf_connection)
+    except Exception as e:
+        logger.error({
+            "message": "Error upserting participant attendance check results - Farm Visit AA",
             "request_id": request_id,
             "error": str(e)
         })
