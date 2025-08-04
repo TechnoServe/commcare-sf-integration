@@ -2,7 +2,7 @@ from utils.salesforce_client import upsert_to_salesforce
 from utils.logging_config import logger
 
 def process_participant_check_training_observation(data: dict, sf_connection):
-    if data.get("app_id", "") == '30cee26f064e403388e334ae7b0c403b' and data.get("metadata", {}).get("app_build_version", 0) >= 217:  # Testing for ONLY KENYA
+    if (data.get("app_id", "") == '30cee26f064e403388e334ae7b0c403b' and data.get("metadata", {}).get("app_build_version", 0) >= 217) or (data.get("app_id", "") == '812728b8b35644dabb51561420938ee0' and data.get("metadata", {}).get("app_build_version", 0) > 34):  # Testing for ONLY KENYA
         for participant in ['Participant_One_Feedback', 'Participant_Two_Feedback', 'Participant_Three_Feedback']:            
             participant_check_fields = {
                 # 1. Farmer
@@ -50,7 +50,7 @@ def process_participant_check_training_observation(data: dict, sf_connection):
 def process_participant_check_farm_visit_aa(data: dict, sf_connection):
     survey_detail = data.get('form', {}).get('@name') 
     request_id = data.get("id")
-    if survey_detail == 'Farm Visit - AA' and data.get("app_id", "") == '30cee26f064e403388e334ae7b0c403b' and data.get("metadata", {}).get("app_build_version", 0) >= 217: # Testing for ONLY KENYA
+    if survey_detail == 'Farm Visit - AA' and ((data.get("app_id", "") == '30cee26f064e403388e334ae7b0c403b' and data.get("metadata", {}).get("app_build_version", 0) >= 217) or (data.get("app_id", "") == '812728b8b35644dabb51561420938ee0' and data.get("metadata", {}).get("app_build_version", 0) >= 69)): # Testing for ONLY KENYA
         for participant in ['farmer_1_questions', 'farmer_2_questions']:
 
             # Process farmer 2 ONLY if the dictionary exists in form data
