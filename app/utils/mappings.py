@@ -1,3 +1,5 @@
+from datetime import datetime
+
 def map_status(value, mapping_dict, default="Undefined"):
     return mapping_dict.get(value, default)
 
@@ -7,8 +9,20 @@ EXPORTING_STATUS_MAP = {
     "2": "Non exporter",
 }
 
+VERTICAL_INTEGRATION_MAP = {
+    "1": "Yes",
+    "0": "No",
+}
+
 MANAGER_ROLE_MAP = {
-    "1": "Wet mill manager"
+    "Wet Mill Registration - ET": {
+        "1": "General manager",
+        "2": "Site/factory manager"
+    },
+    "Wet Mill Registration - BU": {
+        "1": "General manager",
+        "2": "Site/factory manager"
+    }
 }
 
 WET_MILL_STATUS_MAP = {
@@ -53,7 +67,9 @@ INFRASTRUCTURE_PULPING_BRAND_MAP = {
     "1": "Penagos",
     "2": "Mckinnon",
     "3": "Bendal",
-    "4": "Pinhalense"
+    "4": "Pinhalense",
+    "5": "Pre-agard",
+    "6": "Agard"
 }
 INFRASTRUCTURE_PULPING_TYPE_MAP = {
     "1": "Disc",
@@ -68,11 +84,33 @@ INFRASTRUCTURE_NETWORK_COVERAGE_MAP = {
 
 # 2. Manager Needs Assessment Mapping
 MANAGER_DOCS_MAP = {
-    "1": "Registration license",
-    "2": "Tax number",
-    "3": "Production or operational license for current year",
-    "4": "Export license/number",
-    "0": "None"
+    
+    # Ethiopia
+    "Wet Mill Visit - ET": {
+        "1": "Registration license",
+        "2": "Tax number",
+        "3": "Production or operational license for current year",
+        "4": "Export license/number",
+        "0": "None"
+    },
+    
+    # Kenya
+    "Wet Mill Visit - KE": {
+        "1": "Tax number",
+        "2": "Cooperative registration with the ministry of cooperatives",
+        "3": "Wet mill operation permit from the county",
+        "4": "County business permit",
+        "0": "None"
+    },
+
+    # Burundi
+    "Wet Mill Visit - BU": {
+        "1": "Registration license",
+        "2": "Tax number",
+        "3": "Production or operational license for current year",
+        "4": "Export license/number",
+        "0": "None"
+    },
 }
 
 COFFEE_SALE_PERIOD_MAP = {
@@ -106,17 +144,25 @@ TECHNOLOGY_INFO_MAP = {
     "6": "Do not use any digital tool"
 }
 
-# 3. Training Attendance Mapping
+# 3. Training Attendance Mapping (Dropped Burundi topics)
 TRAINING_TOPIC_MAP = {
-    "1": "Machine Operation & Maintenance",
-    "2": "Coffee Processing & Quality Control",
-    "3": "Sustainability Standards Overview",
-    "4": "Social Responsibility & Ethics",
-    "5": "Occupation Health and Security",
-    "6": "Environmental Responsibility",
-    "7": "Gender Inclusion",
-    "8": "Bookkeeping & Financial Management"
+    '1': 'Environmental Responsibility',
+    '2': 'Social Responsibility and Ethics',
+    '3': 'Gender Training',
+    '4': 'Occupational Health and Safety',
+    '5': 'Sustainability Standards Overview',
+    '6': 'Finance and Bookkeeping',
+    '7': 'Post-Harvest Coffee Processing and Quality Training',
+    '8': 'TASQ Overview ',
+    '9': 'Inclusive Training',
+    '10': 'Gender Training',
+    '11': 'Regenerative Agriculture',
+    '12': 'Farm-level Traceability',
+    '13': 'Cooperative Good Governance',
+    '14': 'Bookkeeping',
+    '15': 'Quality Control and Processing Overview'
 }
+
 TRAINING_STATUS_MAP = {
     "1": "New",
     "2": "Refresher"
@@ -185,15 +231,32 @@ ENERGY_USE_SOURCES = {
     "3": "Solar panels"
 }
 
-def update_photo_url(energy_use, field_name, base_url):
-    photo = energy_use.get(field_name)
-    energy_use[field_name] = f"{base_url}/{photo}" if photo else None
+# 6. Routine Visits
+PURPOSE_OF_VISIT = {
+    "1": "Performance of last year (Q1 and Q2)",
+    "2": "Process quality check",
+    "3": "SWOT analysis (Q1 and Q2)",
+    "4": "Gender action plan meeting",
+    "5": "Perform annual audit",
+    "6": "Discuss annual audit feedback",
+    "7": "Review visit (prior to advice from previous visits)"
+}
+
+# 7. KPIs
+FARMER_PAYMENT_METHOD = {
+    "1": "Direct payment",
+    "2": "Broker"
+}
+
+def update_photo_url(energy_use, field_name, url_string):
+    pic = energy_use.get(field_name)
+    energy_use[field_name] = f"{url_string}/{pic}" if pic else None
     return energy_use
 
-base_url = 'https://www.commcarehq.org/a/tns-proof-of-concept/api/form/attachment/8ade6744-f875-4654-8abb-834cdfbb6aed'
+base_url = f'https://www.commcarehq.org/a/tns-proof-of-concept/api/form/attachment/'
 
 
-def transform_water_and_energy_use(survey_data):
+def transform_water_and_energy_use(survey_data, url_string, form):
     transformed = survey_data.copy()
 
      # 1. water_usage
@@ -222,13 +285,13 @@ def transform_water_and_energy_use(survey_data):
 
         pic = water_usage.get('photo_fo_the_office_records')
         if pic:
-            water_usage['photo_fo_the_office_records'] = f'https://www.commcarehq.org/a/tns-proof-of-concept/api/form/attachment/8ade6744-f875-4654-8abb-834cdfbb6aed/{pic}'
+            water_usage['photo_fo_the_office_records'] = f'{url_string}/{pic}'
         else:
             water_usage['photo_fo_the_office_records'] = None
 
         water_meter_photo = water_usage.get('photo_of_water_meter')
-        if pic:
-            water_usage['photo_of_water_meter'] = f'https://www.commcarehq.org/a/tns-proof-of-concept/api/form/attachment/8ade6744-f875-4654-8abb-834cdfbb6aed/{water_meter_photo}'
+        if water_meter_photo:
+            water_usage['photo_of_water_meter'] = f'{url_string}/{water_meter_photo}'
         else:
             water_usage['photo_of_water_meter'] = None
 
@@ -256,13 +319,13 @@ def transform_water_and_energy_use(survey_data):
         ]
 
         for field in photo_fields:
-            energy_use = update_photo_url(energy_use, field, base_url)
+            energy_use = update_photo_url(energy_use, field, url_string)
 
         transformed['energy_use'] = energy_use
 
     return transformed
 
-def transform_waste_water_management(survey_data):
+def transform_waste_water_management(survey_data, url_string, form):
 
     transformed = survey_data.copy()
     # 1. Lagoons mapping
@@ -274,7 +337,7 @@ def transform_waste_water_management(survey_data):
 
         pic = lagoons.get('photo')
         if pic:
-            lagoons['photo'] = f'https://www.commcarehq.org/a/tns-proof-of-concept/api/form/attachment/8ade6744-f875-4654-8abb-834cdfbb6aed/{pic}'
+            lagoons['photo'] = f'{url_string}/{pic}'
 
         transformed['lagoons'] = lagoons
 
@@ -298,7 +361,7 @@ def transform_waste_water_management(survey_data):
         # photo of vetiver wetland
         pic = vet.get('photo')
         if pic:
-            vet['photo'] = f'https://www.commcarehq.org/a/tns-proof-of-concept/api/form/attachment/8ade6744-f875-4654-8abb-834cdfbb6aed/{pic}'
+            vet['photo'] = f'{url_string}/{pic}'
         else:
             vet['photo'] = None
 
@@ -343,7 +406,7 @@ def transform_waste_water_management(survey_data):
 
     return transformed
 
-def transform_wetmill_training(survey_data):
+def transform_wetmill_training(survey_data, url_string, form):
     transformed = survey_data.copy()
     # 1. training topic
     topic = transformed.get('training_topic')
@@ -353,15 +416,24 @@ def transform_wetmill_training(survey_data):
     status = transformed.get('training_status')
     if isinstance(status, str) and status in TRAINING_STATUS_MAP:
         transformed['training_status'] = TRAINING_STATUS_MAP[status]
+    
     # 3. picture URL
-    pic = transformed.get('picture_of_trainees_group')
-    if pic:
-        transformed['picture_of_trainees_group'] = transformed['photo_of_cherry_receipts'] = f'https://www.commcarehq.org/a/tns-proof-of-concept/api/form/attachment/8ade6744-f875-4654-8abb-834cdfbb6aed/{pic}'
+    pic_trainees = transformed.get('picture_of_trainees_group')
+    if pic_trainees:
+        transformed['picture_of_trainees_group'] = f'{url_string}/{pic_trainees}'
     else:
         transformed['picture_of_trainees_group'] = None
+        
+    # 4. picture of attendance form
+    pic_attendance = transformed.get('picture_of_training_attendance_form')
+    if pic_attendance:
+        transformed['picture_of_training_attendance_form'] = f'{url_string}/{pic_attendance}'
+    else:
+        transformed['picture_of_training_attendance_form'] = None
+    
     return transformed
 
-def transform_manager_needs_assessment(survey_data):
+def transform_manager_needs_assessment(survey_data, url_string, form):
     """
     Manager Needs Assessment survey:
     - Map business_and_operations subfields (documents, coffee_sale_period, primary_buyer
@@ -378,9 +450,9 @@ def transform_manager_needs_assessment(survey_data):
         docs = bo.get('documents')
         if isinstance(docs, str):
             bo['documents'] = [
-                MANAGER_DOCS_MAP.get(code)
+                MANAGER_DOCS_MAP.get(form.get("survey_type"), {}).get(code)
                 for code in docs.split()
-                if MANAGER_DOCS_MAP.get(code)
+                if MANAGER_DOCS_MAP.get(form.get("survey_type"), {}).get(code)
             ]
         # Coffee sale period
         csp = bo.get('coffee_sale_period')
@@ -436,21 +508,32 @@ def transform_manager_needs_assessment(survey_data):
 
     # perspective_of_manager.coffee_station_issues
     pom = transformed.get('perspective_of_manager')
+    
+    # perspective_of_manager_extra
+    pom_extra = transformed.get('perspective_of_manager_extra')
+    
+    # add this to perspective_of_manager
+    pom.update(pom_extra)
+    
     if isinstance(pom, dict) and 'coffee_station_issues' in pom:
         del pom['coffee_station_issues']
         transformed['perspective_of_manager'] = pom
 
     return transformed
 
-def transform_kpis(survey_data):
+def transform_kpis(survey_data, url_string, form):
     transformed = survey_data.copy()
     pic = transformed.get('photo_of_cherry_receipts')
     if pic:
-        transformed['photo_of_cherry_receipts'] = f'https://www.commcarehq.org/a/tns-proof-of-concept/api/form/attachment/8ade6744-f875-4654-8abb-834cdfbb6aed/{pic}'
+        transformed['photo_of_cherry_receipts'] = f'{url_string}/{pic}'
+        
+    fpm = transformed.get('farmer_payment_method')
+    if isinstance(fpm, str) and fpm in FARMER_PAYMENT_METHOD:
+        transformed['farmer_payment_method'] = FARMER_PAYMENT_METHOD[fpm]
         
     return transformed
 
-def transform_infrastructure(survey_data):
+def transform_infrastructure(survey_data, url_string, form):
     """
     Transformation for Infrastructure survey:
     - Map 'main_water_source' numeric codes to descriptive text.
@@ -461,17 +544,19 @@ def transform_infrastructure(survey_data):
     code = transformed.get('main_water_source')
     if isinstance(code, str) and code in INFRASTRUCTURE_WATER_SOURCE_MAP:
         transformed['main_water_source'] = INFRASTRUCTURE_WATER_SOURCE_MAP[code]
+        
+    # are_the_following_in_good_state_of_repair
+    good = transformed.get('are_the_following_in_good_state_of_repair')
+    if isinstance(good, str): # Changed the logic since CommCare logic was changed too. These are now ALL equipment whether they need repair or not
+        transformed['are_the_following_in_good_state_of_repair'] = [
+            INFRASTRUCTURE_REPAIR_MAP[c] for c in good.split() if c in INFRASTRUCTURE_REPAIR_MAP and c not in transformed.get('which_of_the_following_needs_repair_check_all_that_apply', "").split()
+        ]
+        
     # which_of_the_following_needs_repair
-    rep = transformed.get('which_of_the_following_needs_repair')
+    rep = transformed.get('which_of_the_following_needs_repair_check_all_that_apply')
     if isinstance(rep, str):
         transformed['which_of_the_following_needs_repair'] = [
             INFRASTRUCTURE_REPAIR_MAP[c] for c in rep.split() if c in INFRASTRUCTURE_REPAIR_MAP
-        ]
-    # are_the_following_in_good_state_of_repair
-    good = transformed.get('are_the_following_in_good_state_of_repair')
-    if isinstance(good, str):
-        transformed['are_the_following_in_good_state_of_repair'] = [
-            INFRASTRUCTURE_REPAIR_MAP[c] for c in good.split() if c in INFRASTRUCTURE_REPAIR_MAP
         ]
     # pulping_machine_brand
     brand = transformed.get('pulping_machine_brand')
@@ -485,9 +570,10 @@ def transform_infrastructure(survey_data):
     net = transformed.get('network_coverage')
     if isinstance(net, str) and net in INFRASTRUCTURE_NETWORK_COVERAGE_MAP:
         transformed['network_coverage'] = INFRASTRUCTURE_NETWORK_COVERAGE_MAP[net]
+    
     return transformed
 
-def transform_cpqi(survey_data):
+def transform_cpqi(survey_data, url_string, form):
     """
     For CPQI convert all values '1'/'0' to yes or no.
     """
@@ -538,7 +624,7 @@ def transform_cpqi(survey_data):
 
     return transformed
 
-def transform_financials(survey_data):
+def transform_financials(survey_data, url_string, form):
     """
     - Remove the 'survey_6___financials' key.
     - Remove any keys ending with '_label'.
@@ -559,7 +645,7 @@ def transform_financials(survey_data):
     return clean(survey_data)
 
 # Transformation for employees survey
-def transform_employees(survey_data):
+def transform_employees(survey_data, url_string, form):
     """
     Specific transformation for Employees survey:
     - Maps 'accountant' and 'sustainability_officer' from "1"/"0" to "yes"/"no"
@@ -567,13 +653,59 @@ def transform_employees(survey_data):
     """
     transformed = {}
     for key, val in survey_data.items():
-        if key in ('accountant', 'sustainability_officer') and val in ('1', '0'):
+        if key in ('accountant', 'sustainability_officer', 'community_manager', 'certification_officer', 'machine_operator') and val in ('1', '0'):
             transformed[key] = 'yes' if val == '1' else 'no'
         else:
             try:
                 transformed[key] = float(val)
             except:
                 transformed[key] = val
+    return transformed
+
+# Transformation of Routine visit
+def transformation_routine_visit(survey_data, url_string, form):
+
+    transformed = {}
+    
+    # 1. map the purpose of visit (Include other)
+    
+    if survey_data.get('purpose_of_visit') == '99':
+        transformed['purpose_of_visit'] = f'Other: {survey_data.get('specify_the_purpose_of_visit')}'
+    else:
+        transformed['purpose_of_visit'] = PURPOSE_OF_VISIT.get(survey_data.get('purpose_of_visit'))
+        
+    # 2. Summary of activity
+    transformed['summary_of_activity'] = survey_data.get('summary_of_activity') 
+    
+    # 3. Picture of activity
+    pic = survey_data.get('picture_of_activity')
+    if pic:
+        transformed['picture_of_activity'] = f'{url_string}/{pic}'
+    else:
+        transformed['picture_of_activity'] = None
+        
+    transformed['general_feedback'] = survey_data.get('general_feedback')
+    
+    return transformed
+        
+        
+# Transformation for Cherry Weekly Price
+def transform_cherry_weekly_price(survey_data, url_string, form):
+    transformed = {}
+    
+    transformed["date"] = survey_data.get("cherry_week")
+    date = survey_data.get("cherry_week")
+    if date:
+        # Convert date string to datetime object
+        date = datetime.strptime(date, "%Y-%m-%d")
+        transformed["cherry_week"] =  str(date.isocalendar().week)
+    
+    else:
+        transformed["cherry_week"] = None
+    
+    transformed["cherry_price"] = survey_data.get("cherry_price")
+    transformed["general_feedback"] = survey_data.get("general_feedback")
+    
     return transformed
 
 # Map survey names to their transformation functions
@@ -586,5 +718,7 @@ SURVEY_TRANSFORMATIONS = {
     "manager_needs_assessment": transform_manager_needs_assessment,
     "wet_mill_training": transform_wetmill_training,
     "waste_water_management": transform_waste_water_management, 
-    "water_and_energy_use": transform_water_and_energy_use
+    "water_and_energy_use": transform_water_and_energy_use,
+    "routine_visit": transformation_routine_visit,
+    "cherry_weekly_price": transform_cherry_weekly_price
 }

@@ -15,3 +15,6 @@ application_default_credentials_mine.jsons
 **/__pycache__/
 git-diagnostics-2025-01-27-0850.zip
 app/utils/__pycache__/
+# app/utils/participant_check_util.py
+# app/jobs/commcare_to_salesforce/farm_visit.py
+# app/jobs/commcare_to_salesforce/training_observation.py

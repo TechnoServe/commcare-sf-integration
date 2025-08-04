@@ -9,6 +9,14 @@ import os
 def process_training_observation(data: dict, sf_connection):
     url_string = f'https://www.commcarehq.org/a/{data.get("domain")}/api/form/attachment/{data.get("form", {}).get("meta", {}).get("instanceID")}/'
     gps_coordinates = data.get("form", {}).get("meta", {}).get("location", {}).get("#text", "") or data.get("form", {}).get("gps_information", {}).get("gps_location", "")
+    
+    gps_parts = gps_coordinates.strip().split(" ")
+    
+    if len(gps_parts) == 4:
+        lat, lon, alt, accuracy = gps_parts
+    else:
+        lat, lon, alt, accuracy = "", "", "", ""
+    
     observation_fields = {
         "Observer__c": data.get("form", {}).get("Observer", ""),
         "Trainer__c": data.get("form", {}).get("trainer_salesforce_id", ""),
@@ -26,9 +34,9 @@ def process_training_observation(data: dict, sf_connection):
         "Photo_of_Facilitator_URL__c": url_string + data.get("form", {}).get("Photo", ""),
         "Farmer_Trainer_Signature__c": url_string + data.get("form", {}).get("Farmer_Trainer_Signature_Section", {}).get("Farmer_Trainer_Signature", ""),
         "Observer_Signature__c": url_string + data.get("form", {}).get("Observer_Signature_Section", {}).get("Observer_Signature", ""),
-        "Observation_Location__Latitude__s": gps_coordinates.split(" ")[0],
-        "Observation_Location__Longitude__s": gps_coordinates.split(" ")[1],
-        "Altitude__c": gps_coordinates.split(" ")[2]
+        "Observation_Location__Latitude__s": lat,
+        "Observation_Location__Longitude__s": lon,
+        "Altitude__c": alt
     }
     upsert_to_salesforce(
         "Observation__c",
@@ -113,6 +121,14 @@ def process_training_observation_results_observer(data: dict, sf_connection):
 def process_demoplot_observation(data: dict, sf_connection):
     url_string = f'https://www.commcarehq.org/a/{data.get("domain")}/api/form/attachment/{data.get("form", {}).get("meta", {}).get("instanceID")}/'
     gps_coordinates = data.get("form", {}).get("meta", {}).get("location", {}).get("#text", "") or data.get("form", {}).get("gps_information", {}).get("gps_location", "")
+    
+    gps_parts = gps_coordinates.strip().split(" ")
+    
+    if len(gps_parts) == 4:
+        lat, lon, alt, accuracy = gps_parts
+    else:
+        lat, lon, alt, accuracy = "", "", "", "" 
+    
     observation_fields = {
         "Observer__c": data.get("form", {}).get("observer", ""),
         "Trainer__c": data.get("form", {}).get("trainer", ""),
@@ -122,9 +138,9 @@ def process_demoplot_observation(data: dict, sf_connection):
         "Comments_1__c": data.get("form", {}).get("visit_comments", ""),
         "Demo_Plot_Photo__c": url_string + data.get("form", {}).get("Demo_Plot_Photo", ""),
         "Observer_Signature__c": url_string + data.get("form", {}).get("agronomy_advisor_signature", ""),
-        "Observation_Location__Latitude__s": gps_coordinates.split(" ")[0] or "",
-        "Observation_Location__Longitude__s": gps_coordinates.split(" ")[1] or "",
-        "Altitude__c": gps_coordinates.split(" ")[2] or ""
+        "Observation_Location__Latitude__s": lat,
+        "Observation_Location__Longitude__s": lon,
+        "Altitude__c": alt
     }
     upsert_to_salesforce(
         "Observation__c",

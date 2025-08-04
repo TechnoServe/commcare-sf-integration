@@ -35,7 +35,7 @@ def process_farm_visit(data: dict, sf_connection):
     survey_detail = data.get('form', {}).get('@name')
     farm_visit_type = data.get("form", {}).get("survey_type", "")
     url_string = f'https://www.commcarehq.org/a/{data.get("domain")}/api/form/attachment/{data.get("form", {}).get("meta", {}).get("instanceID")}/'
-    gps_coordinates = (data.get("form", {}).get("gps_coordinates", "") or "").split(" ")
+    gps_coordinates = (data.get("form", {}).get("best_practice_questions", {}).get("gps_coordinates", "") or "").split(" ") if farm_visit_type == "Farm Visit Full - ET" else (data.get("form", {}).get("gps_coordinates", "") or "").split(" ")
     new_farmer = data.get("form", {}).get("new_farmer", "") == '1'
 
     # Generate common fields
@@ -108,11 +108,23 @@ def process_farm_visit(data: dict, sf_connection):
         farm_visit_fields.update({
             "Shade_Tee_Species__c": data.get("form", {}).get("shade_tree_species", ""),
         })
-        
+    
+    # 2. Puerto Rico
     elif farm_visit_type == 'Farm Visit Full - PR':
         farm_visit_fields.update({
             "No_of_curedas__c": data.get("form", {}).get("opening_questions", {}).get("number_of_curedas", ""),
             "No_of_separate_coffee_fields__c": data.get("form", {}).get("opening_questions", {}).get("number_of_separate_coffee_fields", ""),
+        })
+        
+    # 3. Zimbabwe
+    elif farm_visit_type == 'Farm Visit Full - ZM':
+        farm_visit_fields.update({
+            "Deforested_Farm__c": True if data.get("form", {}).get("planted_on_land_that_have_previously_been_planted_with_woodland_or_forest", "") in ["1", "2"] else False,
+            "Deforested_Previously_planted_trees__c": {
+                "1": "Natural woodland or forest",
+                "2": "Eucalyptus or other tree plantation",
+                "0": "No sign the field(s) was previously woodland or forest."
+            }.get(data.get("form", {}).get("planted_on_land_that_have_previously_been_planted_with_woodland_or_forest", ""), "")
         })
     
     # Upsert to Salesforce
@@ -421,7 +433,7 @@ def process_best_practice_results_chemicals_and_fertilizers(data: dict, sf_conne
                     ),
                 '10' : (
                     'NPK 15:5:10-19' if farm_visit_type == 'Farm Visit Full - PR' else
-                    'Urea' if farm_visit_type == 'Farm Visit Full - KE' else 
+                    'WonderGro' if farm_visit_type == 'Farm Visit Full - KE' else 
                     ""
                     ),
                 '11' : (

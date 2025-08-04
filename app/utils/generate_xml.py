@@ -61,6 +61,7 @@ def generate_xml(job_name, job_id, data, project_unique_id):
                 <Grower_Number>{grower_number}</Grower_Number>
                 <National_ID_Number>{safe_escape(national_id_number)}</National_ID_Number>
                 <Household_Id>{safe_escape(data.get("householdId", ""))}</Household_Id>
+                <Household_PIMA_Id>{safe_escape(data.get("householdPIMAId", ""))}</Household_PIMA_Id>
                 <Household_Number>{safe_int(data.get("HHID", "")) if data.get("HHID", "") else ""}</Household_Number>
                 <Number_of_Trees>{data.get("householdFarmSize", "")}</Number_of_Trees>
                 <Parent_Id>{safe_escape(data.get("trainingGroupId", ""))}</Parent_Id>
@@ -88,6 +89,7 @@ def generate_xml(job_name, job_id, data, project_unique_id):
                         <n0:Grower_Number>{grower_number}</n0:Grower_Number>
                         <n0:National_ID_Number>{safe_escape(national_id_number)}</n0:National_ID_Number>
                         <n0:Household_Id>{safe_escape(data.get("householdId", ""))}</n0:Household_Id>
+                        <n0:Household_PIMA_Id>{safe_escape(data.get("householdPIMAId", ""))}</n0:Household_PIMA_Id>
                         <n0:Household_Number>{safe_int(data.get("HHID", ""))}</n0:Household_Number>
                         <n0:Number_of_Trees>{data.get("householdFarmSize", "")}</n0:Number_of_Trees>
                         <n0:Status>{safe_escape(data.get("status", ""))}</n0:Status>

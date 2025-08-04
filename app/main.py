@@ -141,6 +141,14 @@ def process_data(origin_url_parameter):
                         "request_id": request_id,
                         "error": error
                     })
+                    # Save to Firestore for retry
+                    # doc_id = save_to_firestore(data, job_name, "failed", collection)
+                    # logger.info({
+                    #     "message": "Data stored in Firestore for retry",
+                    #     "request_id": request_id,
+                    #     "doc_id": doc_id
+                    # })
+
                     return jsonify({"error": f"Failed to save data to Postgres"}), 500 # Nice early exit!
             
             # PIMA Agronomy saved to firestore and later forwarded to Salesforce     

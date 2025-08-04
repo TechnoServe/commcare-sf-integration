@@ -3,8 +3,8 @@ from utils.postgres import SessionLocal
 from sqlalchemy.exc import SQLAlchemyError
 from geoalchemy2.shape import from_shape
 from shapely.geometry import Point
-
-from utils.mappings import map_status, EXPORTING_STATUS_MAP, MANAGER_ROLE_MAP, WET_MILL_STATUS_MAP
+from utils.logging_config import logger
+from utils.mappings import map_status, EXPORTING_STATUS_MAP, MANAGER_ROLE_MAP, WET_MILL_STATUS_MAP, VERTICAL_INTEGRATION_MAP
 from simple_salesforce import Salesforce # I don't know if this is needed, but I left it in for now
 
 
@@ -16,8 +16,8 @@ def extract_location_string(location_string):
         return None
 
 
-def map_manager_role(value, role_map, role_other, default="undefined"): # changed default to "undefined". To make sure it is actually working.
-    return role_other if value == "99" else role_map.get(value, default)
+def map_manager_role(value, role_map, role_other, survey_type, default="undefined"): # changed default to "undefined". To make sure it is actually working.
+    return role_other if value == "99" else role_map.get(survey_type, {}).get(value, default)
 
 
 def save_wetmill_registration(data, sf):
@@ -31,18 +31,26 @@ def save_wetmill_registration(data, sf):
         wetmill_details = form.get("wet_mill_details", {})
 
         location = meta.get("location", {}).get("#text", "")
+        location_2 = wetmill_details.get("office_gps", None)
         point = extract_location_string(location)
+        point_2 = extract_location_string(location_2)
 
         exporting_status = map_status(
             wetmill_details.get("exporting_status"), EXPORTING_STATUS_MAP
         )
+        
+        vertical_integration = map_status(
+            wetmill_details.get("vertical_integration"), VERTICAL_INTEGRATION_MAP
+        )
+        
         wet_mill_status = map_status(
             wetmill_details.get("mill_status"), WET_MILL_STATUS_MAP
         )
         manager_role = map_manager_role(
             wetmill_details.get("manager_role"),
             MANAGER_ROLE_MAP,
-            wetmill_details.get("manager_role_other")
+            wetmill_details.get("manager_role_other"),
+            form.get("survey_type")
         )
 
         wet_mill_unique_id = form.get("wetmill_tns_id")
@@ -85,6 +93,7 @@ def save_wetmill_registration(data, sf):
             wetmill.wet_mill_unique_id=form.get("wetmill_tns_id")
             wetmill.mill_status = wet_mill_status
             wetmill.exporting_status = exporting_status
+            wetmill.vertical_integration = vertical_integration
             wetmill.manager_name = wetmill_details.get("manager_name")
             wetmill.comments = wetmill_details.get("comments")
             # wetmill.wetmill_counter = int(wetmill_details.get("wetmill_counter") or 0) # Bouncing this -- Only update for BA.
@@ -100,6 +109,18 @@ def save_wetmill_registration(data, sf):
             wetmill.registration_date = form.get("registration_date")
             wetmill.user_id = user_id
             wetmill.date_ba_signature = form.get("date_ba_signature")
+            wetmill.office_entrance_picture = (
+                f'{url_string}{wetmill_details.get("office_entrance_picture")}'
+                if wetmill_details.get("office_entrance_picture") else ''
+            )
+            wetmill.office_gps = (
+                from_shape(point_2, srid=4326) if point_2 else None
+            )
+            logger.info({
+                "message": "Updated existing Wetmill",
+                "commcare_case_id": commcare_case_id,
+                "wet_mill_unique_id": wet_mill_unique_id
+            })
         else:
             wetmill = Wetmill(
                 wet_mill_unique_id=wet_mill_unique_id,
@@ -123,7 +144,11 @@ def save_wetmill_registration(data, sf):
                 user_id=user_id
             )
             session.add(wetmill)
-
+            logger.info({
+                "message": "Added new Wetmill",
+                "commcare_case_id": commcare_case_id,
+                "wet_mill_unique_id": wet_mill_unique_id
+            })
         session.commit()
         return True, None
 
