@@ -4,7 +4,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from geoalchemy2.shape import from_shape
 from shapely.geometry import Point
 from utils.logging_config import logger
-from utils.mappings import map_status, EXPORTING_STATUS_MAP, MANAGER_ROLE_MAP, WET_MILL_STATUS_MAP, VERTICAL_INTEGRATION_MAP
+from utils.mappings import map_status, map_mill_status, map_manager_role, EXPORTING_STATUS_MAP, MANAGER_ROLE_MAP, WET_MILL_STATUS_MAP, VERTICAL_INTEGRATION_MAP
 from simple_salesforce import Salesforce # I don't know if this is needed, but I left it in for now
 
 
@@ -14,11 +14,6 @@ def extract_location_string(location_string):
         return Point(lon, lat)
     except Exception:
         return None
-
-
-def map_manager_role(value, role_map, role_other, survey_type, default="undefined"): # changed default to "undefined". To make sure it is actually working.
-    return role_other if value == "99" else role_map.get(survey_type, {}).get(value, default)
-
 
 def save_wetmill_registration(data, sf):
     session = SessionLocal()
@@ -36,15 +31,17 @@ def save_wetmill_registration(data, sf):
         point_2 = extract_location_string(location_2)
 
         exporting_status = map_status(
-            wetmill_details.get("exporting_status"), EXPORTING_STATUS_MAP
+            wetmill_details.get("exporting_status", "N/A"), EXPORTING_STATUS_MAP
         )
         
         vertical_integration = map_status(
-            wetmill_details.get("vertical_integration"), VERTICAL_INTEGRATION_MAP
+            wetmill_details.get("vertical_integration", "N/A"), VERTICAL_INTEGRATION_MAP
         )
         
-        wet_mill_status = map_status(
-            wetmill_details.get("mill_status"), WET_MILL_STATUS_MAP
+        wet_mill_status = map_mill_status(
+            wetmill_details.get("mill_status"), 
+            WET_MILL_STATUS_MAP,
+            form.get("survey_type", ""),
         )
         manager_role = map_manager_role(
             wetmill_details.get("manager_role"),

@@ -3,6 +3,12 @@ from datetime import datetime
 def map_status(value, mapping_dict, default="Undefined"):
     return mapping_dict.get(value, default)
 
+def map_manager_role(value, role_map, role_other, survey_type, default="undefined"): # changed default to "undefined". To make sure it is actually working.
+    return role_other if value == "99" else role_map.get(survey_type, {}).get(value, default)
+
+def map_mill_status(value, mill_status_map, survey_type, default="undefined"):
+    return mill_status_map.get(survey_type, {}).get(value, default)
+
 
 EXPORTING_STATUS_MAP = {
     "1": "Exporter",
@@ -22,12 +28,23 @@ MANAGER_ROLE_MAP = {
     "Wet Mill Registration - BU": {
         "1": "General manager",
         "2": "Site/factory manager"
+    },
+    "Wet Mill Registration - KE": {
+        "1": "Cooperative board of management",
+        "2": "CEO/Secretary Manger",
+        "3": "Factory/Wet Mill Manager",
     }
 }
 
 WET_MILL_STATUS_MAP = {
-    "1": "Cooperative",
-    "2": "Private"
+    "Wet Mill Registration - ET": {
+        "1": "Cooperative",
+        "2": "Private"
+    },
+    "Wet Mill Registration - KE": {
+        "1": "Cooperative",
+        "2": "Estate"
+    },
 }
 
 INFRASTRUCTURE_WATER_SOURCE_MAP = {
@@ -63,13 +80,16 @@ INFRASTRUCTURE_REPAIR_MAP = {
     "0": "None"
 }
 
-INFRASTRUCTURE_PULPING_BRAND_MAP = {
+INFRASTRUCTURE_PULPING_BRAND_MAP = { # Add Kenya brands (7, 8, and 9)
     "1": "Penagos",
     "2": "Mckinnon",
     "3": "Bendal",
     "4": "Pinhalense",
     "5": "Pre-agard",
-    "6": "Agard"
+    "6": "Agard",
+    "7": "JM Estrada",
+    "8": "Pallin & Alvis",
+    "9": "Marshall Fowler"
 }
 INFRASTRUCTURE_PULPING_TYPE_MAP = {
     "1": "Disc",
