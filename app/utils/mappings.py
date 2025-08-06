@@ -644,6 +644,7 @@ def transform_cpqi(survey_data, url_string, form):
 
     return transformed
 
+# Transformation for financials survey
 def transform_financials(survey_data, url_string, form):
     """
     - Remove the 'survey_6___financials' key.
@@ -728,6 +729,40 @@ def transform_cherry_weekly_price(survey_data, url_string, form):
     
     return transformed
 
+# Transformation for Gender Equitable Business Practices
+def transform_gender_equitable_business_practices(survey_data, url_string, form):
+    """
+    - Remove the 'survey_12___gender_equitable_business_practices' key.
+    - Remove any keys ending with '_label'.
+    - Change all values 'y'/'n' to 'Yes, most of the time'/'No, rarely or never' for any key that is under the dictionary 'delivers_meetings_and_training_in_ways_women_and_men_prefer'
+    - Change all values 'y'/'n' to 'Equal to or more than 40 percent'/'Less than 40 percent' for any key that is under the dictionary 'delivers_resources_and_services_women_and_men_need'
+    - Change any other values of 'y'/'n' to 'Yes'/'No' for any key that is under any other dictionaries
+    - Leave all other fields and values unchanged.
+    """
+    def clean(d):
+        result = {}
+        for k, v in d.items():
+            if k == 'survey_12___gender_equitable_business_practices' or k.endswith('_label'):
+                continue
+            if isinstance(v, dict):
+                nested = clean(v)
+                if nested is not None:
+                    result[k] = nested
+            else:
+                if k in ['at_times_and_locations_women_prefer', 'using_visual_tools', 'in_local_languages']:
+                    result[k] = 'Yes, most of the time' if v == 'y' else 'No, rarely or never'
+                elif k in ['extension_and_advisory_services', 'resources_eg_inputs_equipment_other_technology', 'financial_services_eg_credit']:
+                    result[k] = 'Equal to or more than 40 percent' if v == 'y' else 'Less than 40 percent'
+                elif v == 'y':
+                    result[k] = 'Yes'
+                elif v == 'n':
+                    result[k] = 'No'
+                else:
+                    result[k] = v
+        return result
+    
+    return clean(survey_data)
+
 # Map survey names to their transformation functions
 SURVEY_TRANSFORMATIONS = {
     "cpqi": transform_cpqi,
@@ -740,5 +775,6 @@ SURVEY_TRANSFORMATIONS = {
     "waste_water_management": transform_waste_water_management, 
     "water_and_energy_use": transform_water_and_energy_use,
     "routine_visit": transformation_routine_visit,
-    "cherry_weekly_price": transform_cherry_weekly_price
+    "cherry_weekly_price": transform_cherry_weekly_price,
+    "gender_equitable_business_practices": transform_gender_equitable_business_practices
 }

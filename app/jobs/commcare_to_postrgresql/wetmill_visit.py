@@ -20,7 +20,8 @@ ALLOWED_SURVEYS = [
     "kpis",
     "water_and_energy_use",
     "financials",
-    "employees"
+    "employees",
+    "gender_equitable_business_practices"
     ]
 
 def save_form_visit(data, wetmill_id=None, user_id=None):
