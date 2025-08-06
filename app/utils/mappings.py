@@ -166,21 +166,48 @@ TECHNOLOGY_INFO_MAP = {
 
 # 3. Training Attendance Mapping (Dropped Burundi topics)
 TRAINING_TOPIC_MAP = {
-    '1': 'Environmental Responsibility',
-    '2': 'Social Responsibility and Ethics',
-    '3': 'Gender Training',
-    '4': 'Occupational Health and Safety',
-    '5': 'Sustainability Standards Overview',
-    '6': 'Finance and Bookkeeping',
-    '7': 'Post-Harvest Coffee Processing and Quality Training',
-    '8': 'TASQ Overview ',
-    '9': 'Inclusive Training',
-    '10': 'Gender Training',
-    '11': 'Regenerative Agriculture',
-    '12': 'Farm-level Traceability',
-    '13': 'Cooperative Good Governance',
-    '14': 'Bookkeeping',
-    '15': 'Quality Control and Processing Overview'
+    'old': {
+        '1': 'Environmental Responsibility',
+        '2': 'Social Responsibility and Ethics',
+        '3': 'Gender Training',
+        '4': 'Occupational Health and Safety',
+        '5': 'Sustainability Standards Overview',
+        '6': 'Finance and Bookkeeping',
+        '7': 'Post-Harvest Coffee Processing and Quality Training',
+        '8': 'TASQ Overview ',
+        '9': 'Inclusive Training',
+        '10': 'Gender Training',
+        '11': 'Regenerative Agriculture',
+        '12': 'Farm-level Traceability',
+        '13': 'Cooperative Good Governance',
+        '14': 'Bookkeeping',
+        '15': 'Quality Control and Processing Overview'
+    },
+    'new' : {
+        "1" : "Post Harvest Coffee Quality and Processing",
+        "2" : "Sustainability Standards Overview (SSO)",
+        "3" : "Social Responsibility and Ethics (SRE)",
+        "4" : "Gender",
+        "5" : "Environmental Responsibility (ER)",
+        "6" : "Occupational Health and Safety (OHS)",
+        "7" : "Finance and Bookkeeping",
+        "8" : "Wet Mill Processing and Quality Control",
+        "9" : "TASQ Overview",
+        "10" : "TASQ Inclusive Pillar",
+        "11" : "TASQ Regenerative Pillar",
+        "12" : "Bookkeeping",
+        "13" : "Cooperative Governance",
+        "14" : "Farm Level Traceability",
+        "15" : "Wet Mill Processing and Quality Control",
+        "16" : "Wet Mill coffee processing Parchment Traceability",
+        "17" : "Pulping Machine Operations and Maintenance",
+        "18" : "Nespresso AAA Regenerative Pillar Lesson Plan",
+        "19" : "IPDM Lesson Plan for Coop leaders and Agrochemical Storekeepers",
+        "20" : "Nespresso AAA TASQ Overview",
+        "21" : "Nespresso AAA Inclusive Pillar Lesson Plan",
+        "22" : "Safe use handling and storage",
+        "23" : "Kenya AAA POSA (Producer Organization Sustainability Assessment)"
+    }
 }
 
 TRAINING_STATUS_MAP = {
@@ -427,11 +454,17 @@ def transform_waste_water_management(survey_data, url_string, form):
     return transformed
 
 def transform_wetmill_training(survey_data, url_string, form):
+    version = 'old' if form.get("survey_type", "") == 'Wet Mill Visit - ET' and int(form.get("@version", "")) <= 54 else 'new'
     transformed = survey_data.copy()
+    
+    # Delete training_topic_category if it exists
+    if 'training_topic_category' in transformed:
+        del transformed['training_topic_category']
+    
     # 1. training topic
     topic = transformed.get('training_topic')
-    if isinstance(topic, str) and topic in TRAINING_TOPIC_MAP:
-        transformed['training_topic'] = TRAINING_TOPIC_MAP[topic]
+    if isinstance(topic, str) and topic in TRAINING_TOPIC_MAP[version]:
+        transformed['training_topic'] = TRAINING_TOPIC_MAP[version][topic]
     # 2. training status
     status = transformed.get('training_status')
     if isinstance(status, str) and status in TRAINING_STATUS_MAP:
