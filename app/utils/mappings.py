@@ -767,10 +767,13 @@ def transform_gender_equitable_business_practices(survey_data, url_string, form)
     """
     - Remove the 'survey_12___gender_equitable_business_practices' key.
     - Remove any keys ending with '_label'.
+    - Find keys at second level and merge with keys of first level to completely remove the second level so that third level is the final level.
     - Change all values 'y'/'n' to 'Yes, most of the time'/'No, rarely or never' for any key that is under the dictionary 'delivers_meetings_and_training_in_ways_women_and_men_prefer'
     - Change all values 'y'/'n' to 'Equal to or more than 40 percent'/'Less than 40 percent' for any key that is under the dictionary 'delivers_resources_and_services_women_and_men_need'
     - Change any other values of 'y'/'n' to 'Yes'/'No' for any key that is under any other dictionaries
     - Leave all other fields and values unchanged.
+    - Merge first nested dictionaries into the top level dictionary so that the final output includes only two levels of keys.
+    
     """
     def clean(d):
         result = {}
@@ -778,23 +781,50 @@ def transform_gender_equitable_business_practices(survey_data, url_string, form)
             if k == 'survey_12___gender_equitable_business_practices' or k.endswith('_label'):
                 continue
             if isinstance(v, dict):
-                nested = clean(v)
-                if nested is not None:
-                    result[k] = nested
+                # Merge second level keys into the first level
+                for sub_k, sub_v in v.items():
+                    if isinstance(sub_v, dict):
+                        result[f'{k}-{sub_k}'] = sub_v
+                    else:
+                        result[sub_k] = sub_v
             else:
-                if k in ['at_times_and_locations_women_prefer', 'using_visual_tools', 'in_local_languages']:
-                    result[k] = 'Yes, most of the time' if v == 'y' else 'No, rarely or never'
-                elif k in ['extension_and_advisory_services', 'resources_eg_inputs_equipment_other_technology', 'financial_services_eg_credit']:
-                    result[k] = 'Equal to or more than 40 percent' if v == 'y' else 'Less than 40 percent'
-                elif v == 'y':
-                    result[k] = 'Yes'
-                elif v == 'n':
-                    result[k] = 'No'
-                else:
-                    result[k] = v
+                # If it's not a dict, just copy the value
+                result[k] = v
         return result
     
-    return clean(survey_data)
+    cleaned = clean(survey_data)
+    
+    # print(f"Cleaned Data: {cleaned}")  # Debugging line to check transformed data
+    
+    # Now change the values based on the specified conditions
+    for k, v in cleaned.items():
+        if 'delivers_meetings_and_training_in_ways_women_and_men_prefer' in k and isinstance(v, dict):
+            for sub_k, sub_v in v.items():
+                if sub_v == 'y':
+                    v[sub_k] = 'Yes, most of the time'
+                elif sub_v == 'n':
+                    v[sub_k] = 'No, rarely or never'
+        elif 'delivers_resources_and_services_women_and_men_need' in k and isinstance(v, dict):
+            for sub_k, sub_v in v.items():
+                if sub_v == 'y':
+                    v[sub_k] = 'Equal to or more than 40 percent'
+                elif sub_v == 'n':
+                    v[sub_k] = 'Less than 40 percent'
+        elif isinstance(v, dict):
+            for sub_k, sub_v in v.items():
+                if sub_v == 'y':
+                    v[sub_k] = 'Yes'
+                elif sub_v == 'n':
+                    v[sub_k] = 'No'
+        else:
+            if v == 'y':
+                cleaned[k] = 'Yes'
+            elif v == 'n':
+                cleaned[k] = 'No'
+    
+    # print(f"Transformed Data: {cleaned}")  # Debugging line to check cleaned data
+    
+    return cleaned
 
 # Map survey names to their transformation functions
 SURVEY_TRANSFORMATIONS = {
