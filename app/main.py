@@ -124,41 +124,41 @@ def process_data(origin_url_parameter):
         if job_name in migrated_form_types:
 
             # PIMA Sustainability forwarded to PostgreSQL
-            if job_name in ["Wet Mill Registration Form", "Wet Mill Visit"]:
-                if job_name == "Wet Mill Registration Form":
-                    success, error = wetmill_registration.save_wetmill_registration(data, sf_connection)
-                elif job_name == "Wet Mill Visit":
-                    success, error = wetmill_visit.save_form_visit(data)
+            # if job_name in ["Wet Mill Registration Form", "Wet Mill Visit"]:
+            #     if job_name == "Wet Mill Registration Form":
+            #         success, error = wetmill_registration.save_wetmill_registration(data, sf_connection)
+            #     elif job_name == "Wet Mill Visit":
+            #         success, error = wetmill_visit.save_form_visit(data)
                     
-                if success:
-                    logger.info({
-                        "message": f"Processed successfully record with Request ID: '{request_id}' to PostgreSQL",
-                        "request_id": request_id,
-                    })
-                else:
-                    logger.error({
-                        "message": f"Failed to process record with Request ID: '{request_id}' to PostgreSQL",
-                        "request_id": request_id,
-                        "error": error
-                    })
-                    # Save to Firestore for retry
-                    # doc_id = save_to_firestore(data, job_name, "failed", collection)
-                    # logger.info({
-                    #     "message": "Data stored in Firestore for retry",
-                    #     "request_id": request_id,
-                    #     "doc_id": doc_id
-                    # })
+            #     if success:
+            #         logger.info({
+            #             "message": f"Processed successfully record with Request ID: '{request_id}' to PostgreSQL",
+            #             "request_id": request_id,
+            #         })
+            #     else:
+            #         logger.error({
+            #             "message": f"Failed to process record with Request ID: '{request_id}' to PostgreSQL",
+            #             "request_id": request_id,
+            #             "error": error
+            #         })
+            #         # Save to Firestore for retry
+            #         # doc_id = save_to_firestore(data, job_name, "failed", collection)
+            #         # logger.info({
+            #         #     "message": "Data stored in Firestore for retry",
+            #         #     "request_id": request_id,
+            #         #     "doc_id": doc_id
+            #         # })
 
-                    return jsonify({"error": f"Failed to save data to Postgres"}), 500 # Nice early exit!
+            #         return jsonify({"error": f"Failed to save data to Postgres"}), 500 # Nice early exit!
             
             # PIMA Agronomy saved to firestore and later forwarded to Salesforce     
-            else:
-                doc_id = save_to_firestore(data, job_name, "new", collection)
-                logger.info({
-                    "message": "Data stored in Firestore",
-                    "request_id": request_id,
-                    "doc_id": doc_id
-                })
+            # else:
+            doc_id = save_to_firestore(data, job_name, "new", collection)
+            logger.info({
+                "message": "Data stored in Firestore",
+                "request_id": request_id,
+                "doc_id": doc_id
+            })
             
         else:
             logger.warning({
@@ -201,6 +201,8 @@ async def process_firestore_records(collection):
         data = doc.to_dict()  # Extract data from Firestore
         request_id = data.get("data", {}).get("id")  # Request ID: Used to track the record in logs
         job_name = data.get("job_name")
+        
+        destination = "PostgreSQL" if job_name in ["Wet Mill Registration Form", "Wet Mill Visit"] else destination
 
         try:
             logger.info({
@@ -234,7 +236,14 @@ async def process_firestore_records(collection):
             
             # 6. Farm Visit
             elif job_name in ["Farm Visit Full", "Farm Visit - AA"]:
-                success, error = await farm_visit.send_to_salesforce(data.get("data"), sf_connection)  
+                success, error = await farm_visit.send_to_salesforce(data.get("data"), sf_connection)
+                
+            # 7. Wet Mill Registration and Visit to PostgreSQL
+            elif job_name in ["Wet Mill Registration Form", "Wet Mill Visit"]:
+                if job_name == "Wet Mill Registration Form":
+                    success, error = wetmill_registration.save_wetmill_registration(data.get("data"), sf_connection)
+                elif job_name == "Wet Mill Visit":
+                    success, error = wetmill_visit.save_form_visit(data.get("data"))
 
 
             if success:
@@ -329,6 +338,8 @@ async def process_failed_records(collection):
         data = doc.to_dict()  # Extract data from Firestore
         request_id = data.get("data", {}).get("id")  # Request ID: Used to track the record in logs
         job_name = data.get("job_name")
+        
+        destination = "PostgreSQL" if job_name in ["Wet Mill Registration Form", "Wet Mill Visit"] else destination
 
         try:
             logger.info({
@@ -362,6 +373,13 @@ async def process_failed_records(collection):
             # 6. Farm Visit Full
             elif job_name in ["Farm Visit Full", "Farm Visit - AA"]:
                 success, error = await farm_visit.send_to_salesforce(data.get("data"), sf_connection)
+                
+            # 7. Wet Mill Registration and Visit to PostgreSQL
+            elif job_name in ["Wet Mill Registration Form", "Wet Mill Visit"]:
+                if job_name == "Wet Mill Registration Form":
+                    success, error = wetmill_registration.save_wetmill_registration(data.get("data"), sf_connection)
+                elif job_name == "Wet Mill Visit":
+                    success, error = wetmill_visit.save_form_visit(data.get("data"))
 
             if success:
                 # If processing is successful, mark as completed
@@ -479,6 +497,8 @@ async def retry_record(destination_url_parameter, id):
             request_id = data.get("data", {}).get("id")
             job_name = data.get("job_name")
 
+            destination = "PostgreSQL" if job_name in ["Wet Mill Registration Form", "Wet Mill Visit"] else destination
+            
             try:
                 logger.info({
                     "message": f"Retrying record with Request ID: '{request_id}' to {destination}",
@@ -514,6 +534,13 @@ async def retry_record(destination_url_parameter, id):
                 # 6. Farm Visit Full
                 elif job_name in ["Farm Visit Full", "Farm Visit - AA"]:
                     success, error = await farm_visit.send_to_salesforce(data.get("data"), sf_connection)
+                    
+                # 7. Wet Mill Registration and Visit to PostgreSQL
+                elif job_name in ["Wet Mill Registration Form", "Wet Mill Visit"]:
+                    if job_name == "Wet Mill Registration Form":
+                        success, error = wetmill_registration.save_wetmill_registration(data.get("data"), sf_connection)
+                    elif job_name == "Wet Mill Visit":
+                        success, error = wetmill_visit.save_form_visit(data.get("data"))
 
                 if success:
                     # If successful, update Firestore status to completed

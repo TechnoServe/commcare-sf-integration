@@ -778,7 +778,7 @@ def transform_gender_equitable_business_practices(survey_data, url_string, form)
     def clean(d):
         result = {}
         for k, v in d.items():
-            if k == 'survey_12___gender_equitable_business_practices' or k.endswith('_label'):
+            if k == 'survey_12___gender_equitable_business_practices' or k.endswith('_label') or k == 'table':
                 continue
             if isinstance(v, dict):
                 # Merge second level keys into the first level
@@ -792,7 +792,13 @@ def transform_gender_equitable_business_practices(survey_data, url_string, form)
                 result[k] = v
         return result
     
-    cleaned = clean(survey_data)
+    cleaned_assessment_form = clean(survey_data['assessment_form'])
+    cleaned_action_plan = clean(survey_data.get('action_plan', {}))
+    general_feedback = survey_data.get('general_feedback', None)
+    
+    cleaned = {**cleaned_assessment_form, **cleaned_action_plan} # Merge both cleaned dictionaries
+    
+    cleaned['general_feedback'] = general_feedback  # Add general feedback to the cleaned data
     
     # print(f"Cleaned Data: {cleaned}")  # Debugging line to check transformed data
     
