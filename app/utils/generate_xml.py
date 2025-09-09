@@ -46,6 +46,9 @@ def generate_xml(job_name, job_id, data, project_unique_id):
         grower_number = data.get("participantOtherIDNumber", "") if project_unique_id in ["coffee_zw_2024c", "coffee_zw_c21_ag", "coffee_zim", "coffee_zim_c2_ag"] else ''
 
         
+        # Determine Farm Size/Number of Coffee trees based on project
+        farm_size = str(int(data.get("householdFarmSize", "0"))) if project_unique_id in ["coffee_ke_2024ac", "coffee_ke_2024bc", "coffee_zw_2024c", "coffee_zw_c21_ag", "coffee_zim", "coffee_zim_c2_ag"] else data.get("householdFarmSize", "0")
+        
         return f'''<?xml version="1.0" ?>
             <data xmlns:jrm="http://dev.commcarehq.org/jr/xforms" xmlns="http://openrosa.org/formdesigner/3E266629-AFD8-4A1C-8825-1DCDDF24E5A8" uiVersion="1" version="325" name="New Participant">
                 <Name>{safe_escape(fullname)}</Name>
@@ -63,7 +66,7 @@ def generate_xml(job_name, job_id, data, project_unique_id):
                 <Household_Id>{safe_escape(data.get("householdId", ""))}</Household_Id>
                 <Household_PIMA_Id>{safe_escape(data.get("householdPIMAId", ""))}</Household_PIMA_Id>
                 <Household_Number>{safe_int(data.get("HHID", "")) if data.get("HHID", "") else ""}</Household_Number>
-                <Number_of_Trees>{data.get("householdFarmSize", "")}</Number_of_Trees>
+                <Number_of_Trees>{farm_size}</Number_of_Trees>
                 <Parent_Id>{safe_escape(data.get("trainingGroupId", ""))}</Parent_Id>
                 <Status>{safe_escape(data.get("status", ""))}</Status>
                 <Primary_Household_Member>{safe_escape(data.get("participantPrimaryHouseholdMember", ""))}</Primary_Household_Member>
@@ -91,7 +94,7 @@ def generate_xml(job_name, job_id, data, project_unique_id):
                         <n0:Household_Id>{safe_escape(data.get("householdId", ""))}</n0:Household_Id>
                         <n0:Household_PIMA_Id>{safe_escape(data.get("householdPIMAId", ""))}</n0:Household_PIMA_Id>
                         <n0:Household_Number>{safe_int(data.get("HHID", ""))}</n0:Household_Number>
-                        <n0:Number_of_Trees>{data.get("householdFarmSize", "")}</n0:Number_of_Trees>
+                        <n0:Number_of_Trees>{farm_size}</n0:Number_of_Trees>
                         <n0:Status>{safe_escape(data.get("status", ""))}</n0:Status>
                         <n0:Primary_Household_Member>{safe_escape(data.get("participantPrimaryHouseholdMember", ""))}</n0:Primary_Household_Member>
                         <n0:Name_Household_Concat>{safe_escape(fullname)} {safe_escape(data.get("HHID", ""))}-{safe_escape(farmernumber)}</n0:Name_Household_Concat>
