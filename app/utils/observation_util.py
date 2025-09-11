@@ -163,7 +163,7 @@ def process_demoplot_observation_results(data: dict, sf_connection):
         "dd10fc19040d40f0be48a447e1d2727c", # Regrow 2024
         "d63cdcf6b9d849548413ca356871cd3a", # JCP 2023
         "0c9b5791828b4baea6c1eaa4d6979c5a", # CREW 2025
-        "f079b0daae1d4d34a89e331dc5a72fbd" # CREW 2024
+        "f079b0daae1d4d34a89e331dc5a72fbd", # CREW 2024
         "af9f1901f966494792ade0b63e0d8568" # CREW 2025 TFS
     ]
 

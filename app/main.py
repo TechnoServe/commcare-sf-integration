@@ -9,7 +9,7 @@ import os
 from simple_salesforce import Salesforce
 from dotenv import load_dotenv
 from utils.logging_config import logger  # Import the centralized logger
-from datetime import datetime
+from datetime import datetime, timezone
 import requests
 from jobs.salesforce_to_commcare import process_commcare_data
 import httpx
@@ -590,6 +590,72 @@ async def retry_record(destination_url_parameter, id):
             "error": str(e)
         })
         return jsonify({"error": "Failed to retry records", "details": str(e)}), 500
+
+@app.route('/batch_retry/<destination_url_parameter>/', methods=['POST'])
+async def batch_retry(destination_url_parameter):
+    data = request.get_json()
+    ids_list = data.get('ids', [])
+
+    sem = asyncio.Semaphore(100)  # max 20 retries at once
+
+    async def limited_retry(idx, record_id):
+        async with sem:
+            try:
+                await retry_record(destination_url_parameter, record_id)
+                logger.info({
+                    "message": f"Retry number {idx+1} completed",
+                    "request_id": record_id,
+                })
+            except Exception as e:
+                logger.error({
+                    "message": f"Failed to complete retry number {idx+1}",
+                    "request_id": record_id,
+                    "error": str(e)
+                })
+
+    try:
+        await asyncio.gather(
+            *(limited_retry(idx, record_id) for idx, record_id in enumerate(ids_list))
+        )
+        return jsonify({"message": "Retry completed"}), 200
+    except Exception as e:
+        logger.error({
+            "message": "Failed to complete batch retry",
+            "error": str(e)
+        })
+        return jsonify({"error": "Failed to retry records", "details": str(e)}), 500
+
+@app.route('/bulk_update/<collection>', methods=['POST'])
+def bulk_update(collection):
+    data = request.get_json()
+    ids_list = data.get('ids', [])
+    status = data.get('status', "new")
+
+    try:
+        batch_size = 200
+        for i in range(0, len(ids_list), batch_size):
+            batch = db.batch()
+            chunk = ids_list[i:i+batch_size]
+            for id in chunk:
+                docs = db.collection(collection).where(filter=FieldFilter("data.id", "==", id)).get()
+                if not docs:
+                    logger.info({"message": "No records found for editing", "id": id})
+                    continue
+                for doc in docs:
+                    logger.info({
+                        "message": f"Parsing document {str(doc.id)}"
+                    })
+                    doc_ref = db.collection(collection).document(doc.id)
+                    update_data = {
+                        "status": status,
+                        "updated_at": str(datetime.now(timezone.utc))
+                    }
+                    batch.update(doc_ref, update_data)
+            batch.commit()
+        
+        return jsonify({"message": "Update completed"}), 200
+    except Exception as e:
+        return jsonify({"error": "Failed to update records", "details": str(e)}), 500
 
 @app.route('/failed/<destination_url_parameter>', methods=['GET'])
 def get_failed_jobs(destination_url_parameter):
