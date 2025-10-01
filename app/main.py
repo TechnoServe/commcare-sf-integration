@@ -625,7 +625,7 @@ async def batch_retry(destination_url_parameter):
         })
         return jsonify({"error": "Failed to retry records", "details": str(e)}), 500
 
-@app.route('/bulk_update/<collection>', methods=['POST'])
+@app.route('/bulk_update/<collection>/', methods=['POST'])
 def bulk_update(collection):
     data = request.get_json()
     ids_list = data.get('ids', [])

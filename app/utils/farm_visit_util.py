@@ -142,7 +142,10 @@ PART 2: Processing the Farm Visit Best Practices Object
 
 def process_best_practices(data: dict, sf_connection):
     farm_visit_type = data.get('form', {}).get('survey_type')
-    bp_string = data.get('form', {}) if farm_visit_type == 'Farm Visit Full - ZM' else data.get('form', {}).get('best_practice_questions', {})
+    bp_string = data.get('form', {}) if (
+        farm_visit_type == 'Farm Visit Full - ZM' and 
+        data.get('metadata', {}).get('app_build_version', 0) in [97, 267, 463, 233]
+        ) else data.get('form', {}).get('best_practice_questions', {})
     url_string = f'https://www.commcarehq.org/a/{data.get("domain")}/api/form/attachment/{data.get("form", {}).get("meta", {}).get("instanceID")}/'
     
     best_practice_fields = {
@@ -177,6 +180,11 @@ def process_best_practices(data: dict, sf_connection):
             '3': f"Heavy shade, over 40%"
         }.get(str(bp_string.get('shade_control', {}).get('level_of_shade_present_on_the_farm', "")), "") or "",
         'photo_of_level_of_shade_on_the_plot__c': f'{url_string}{bp_string.get("shade_control", {}).get("photo_of_level_of_shade_on_the_plot", "")}' or "",
+        'have_new_shade_been_planted_last_3_years__c': {
+            '0': 'No',
+            '1': 'Yes',
+            '2': 'Few new shade trees'
+        }.get(str(bp_string.get('shade_control', {}).get('new_shade_trees_in_the_last_3_years', "")), ""),
         
         # 4. Compost & Manure (Burundi is a special case)
         'do_you_have_compost_manure__c': {
@@ -332,7 +340,10 @@ PART 3: Processing the Farm Visit Best Practice Results
 # 1. Process Erosion Control Best Practice Result    
 def process_best_practice_results_erosion_control(data: dict, sf_connection):
     farm_visit_type = data.get('form', {}).get('survey_type')
-    bp_string = data.get('form', {}) if farm_visit_type == 'Farm Visit Full - ZM' else data.get('form', {}).get('best_practice_questions', {})
+    bp_string = data.get('form', {}) if (
+        farm_visit_type == 'Farm Visit Full - ZM' and 
+        data.get('metadata', {}).get('app_build_version', 0) in [97, 267, 463, 233]
+        ) else data.get('form', {}).get('best_practice_questions', {})
     results = str(bp_string.get('erosion_control', {}).get('methods_of_erosion_control', '')).split(" ")
     
     for result in results:
@@ -367,7 +378,10 @@ def process_best_practice_results_erosion_control(data: dict, sf_connection):
 # 2. Process Chemicals and Fertilizers Best Practice Result    
 def process_best_practice_results_chemicals_and_fertilizers(data: dict, sf_connection):
     farm_visit_type = data.get('form', {}).get('survey_type')
-    bp_string = data.get('form', {}) if farm_visit_type == 'Farm Visit Full - ZM' else data.get('form', {}).get('best_practice_questions', {})
+    bp_string = data.get('form', {}) if (
+        farm_visit_type == 'Farm Visit Full - ZM' and 
+        data.get('metadata', {}).get('app_build_version', 0) in [97, 267, 463, 233]
+        ) else data.get('form', {}).get('best_practice_questions', {})
     results = str(bp_string.get('nutrition', {}).get('type_chemical_applied_on_coffee_last_12_months', '')).split(" ")
     
     for result in results:
@@ -485,7 +499,10 @@ def process_best_practice_results_chemicals_and_fertilizers(data: dict, sf_conne
 # 3. Process Coffee Berry Borer Best Practice Results
 def process_best_practice_results_cbb(data: dict, sf_connection):
     farm_visit_type = data.get('form', {}).get('survey_type')
-    bp_string = data.get('form', {}) if farm_visit_type == 'Farm Visit Full - ZM' else data.get('form', {}).get('best_practice_questions', {})
+    bp_string = data.get('form', {}) if (
+        farm_visit_type == 'Farm Visit Full - ZM' and 
+        data.get('metadata', {}).get('app_build_version', 0) in [97, 267, 463, 233]
+        ) else data.get('form', {}).get('best_practice_questions', {})
     results = str(bp_string.get('pest_disease_management', {}).get('methods_of_controlling_white_stem_borer', '')).split(" ") if farm_visit_type == 'Farm Visit Full - ET' else str(bp_string.get('pest_disease_management', {}).get('methods_of_controlling_coffee_berry_borer', '')).split(" ")
     
     for result in results:
@@ -581,7 +598,10 @@ def process_best_practice_results_cbb(data: dict, sf_connection):
 def process_best_practice_results_clr(data: dict, sf_connection):
     request_id = data.get("id")
     farm_visit_type = data.get('form', {}).get('survey_type')
-    bp_string = data.get('form', {}) if farm_visit_type == 'Farm Visit Full - ZM' else data.get('form', {}).get('best_practice_questions', {})
+    bp_string = data.get('form', {}) if (
+        farm_visit_type == 'Farm Visit Full - ZM' and 
+        data.get('metadata', {}).get('app_build_version', 0) in [97, 267, 463, 233]
+        ) else data.get('form', {}).get('best_practice_questions', {})
     results = str(bp_string.get('pest_disease_management', {}).get('methods_of_controlling_coffee_leaf_rust', '')).split(" ")
     if farm_visit_type == 'Farm Visit Full - PR':
         for result in results:
@@ -619,7 +639,10 @@ def process_best_practice_results_clr(data: dict, sf_connection):
 def process_best_practice_results_pruning(data: dict, sf_connection):
     request_id = data.get("id")
     farm_visit_type = data.get('form', {}).get('survey_type')
-    bp_string = data.get('form', {}) if farm_visit_type == 'Farm Visit Full - ZM' else data.get('form', {}).get('best_practice_questions', {})
+    bp_string = data.get('form', {}) if (
+        farm_visit_type == 'Farm Visit Full - ZM' and 
+        data.get('metadata', {}).get('app_build_version', 0) in [97, 267, 463, 233]
+        ) else data.get('form', {}).get('best_practice_questions', {})
     results = str(bp_string.get('pruning', {}).get('pruning_method_on_majority_trees', '')).split(" ")
     field_age = float(data.get('form', {}).get('field_age', 0))
     if farm_visit_type in ['Farm Visit Full - PR', 'Farm Visit Full - ZM', 'Farm Visit Full - KE', 'Farm Visit Full - BU']:
@@ -661,7 +684,10 @@ def process_best_practice_results_pruning(data: dict, sf_connection):
 def process_best_practice_results_weeding(data: dict, sf_connection):
     request_id = data.get("id")
     farm_visit_type = data.get('form', {}).get('survey_type')
-    bp_string = data.get('form', {}) if farm_visit_type == 'Farm Visit Full - ZM' else data.get('form', {}).get('best_practice_questions', {})
+    bp_string = data.get('form', {}) if (
+        farm_visit_type == 'Farm Visit Full - ZM' and 
+        data.get('metadata', {}).get('app_build_version', 0) in [97, 267, 463, 233]
+        ) else data.get('form', {}).get('best_practice_questions', {})
     results = str(bp_string.get('weeding', {}).get('which_product_have_you_used', '')).split(" ")
     used_herbicide = bp_string.get('weeding', {}).get('used_herbicides', "") == 'yes'
     if farm_visit_type in ['Farm Visit Full - ZM', 'Farm Visit Full - KE', 'Farm Visit Full - PR'] and used_herbicide:
@@ -701,7 +727,10 @@ def process_best_practice_results_weeding(data: dict, sf_connection):
 def process_best_practice_results_pesticide_use_pest_problems(data: dict, sf_connection):
     request_id = data.get("id")
     farm_visit_type = data.get('form', {}).get('survey_type')
-    bp_string = data.get('form', {}) if farm_visit_type == 'Farm Visit Full - ZM' else data.get('form', {}).get('best_practice_questions', {})
+    bp_string = data.get('form', {}) if (
+        farm_visit_type == 'Farm Visit Full - ZM' and 
+        data.get('metadata', {}).get('app_build_version', 0) in [97, 267, 463, 233]
+        ) else data.get('form', {}).get('best_practice_questions', {})
     results = str(bp_string.get('pesticide_use', {}).get('which_pests_cause_you_problems', '')).split(" ")
     if farm_visit_type == 'Farm Visit Full - PR':
         for result in results:
@@ -736,7 +765,10 @@ def process_best_practice_results_pesticide_use_pest_problems(data: dict, sf_con
 def process_best_practice_results_pesticide_use_sprays(data: dict, sf_connection):
     request_id = data.get("id")
     farm_visit_type = data.get('form', {}).get('survey_type')
-    bp_string = data.get('form', {}) if farm_visit_type == 'Farm Visit Full - ZM' else data.get('form', {}).get('best_practice_questions', {})
+    bp_string = data.get('form', {}) if (
+        farm_visit_type == 'Farm Visit Full - ZM' and 
+        data.get('metadata', {}).get('app_build_version', 0) in [97, 267, 463, 233]
+        ) else data.get('form', {}).get('best_practice_questions', {})
     results = str(bp_string.get('pesticide_use', {}).get('do_you_spray_any_of_the_following_on_your_farm_for_leaf_miner_or_rust', '')).split(" ")
     if farm_visit_type == 'Farm Visit Full - PR':
         for result in results:
