@@ -326,8 +326,8 @@ def process_best_practices(data: dict, sf_connection):
 
             # 4. Kitchen Garden
             'is_there_a_kitchen_garden__c': {
-                "1": "Yes",
-                "0": "No"    
+                "1": "Yes. There is a kitchen garden on the farm",
+                "0": "No kitchen garden planted"    
             }.get(bp_string.get("kitchen_garden", {}).get("is_there_a_kitchen_garden", ""), "N/A"),
             'photograph_of_kitchen_garden__c': f"{url_string}{bp_string.get("kitchen_garden", {}).get("photograph", "")}" if bp_string.get("kitchen_garden", {}).get("is_there_a_kitchen_garden", "") == "1" else None
         })
