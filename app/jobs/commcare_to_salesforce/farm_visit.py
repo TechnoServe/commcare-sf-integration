@@ -14,6 +14,7 @@ from utils.farm_visit_util import (
     process_best_practice_results_pesticide_use_sprays, 
     process_best_practice_results_pruning, 
     process_best_practice_results_weeding,
+    process_best_practice_results_kitchen_garden,
     update_household_fvaa
     )
 from utils.fis_util import (
@@ -236,7 +237,22 @@ async def send_to_salesforce(data: dict, sf_connection):
         })
         return False, str(e)
     
-    # Step 14: Update household with latest visit record
+    # Step 14: Process best practice results - kitchen garden
+    try:
+        logger.info({
+            "message": "Processing best practice results - kitchen garden",
+            "request_id": request_id
+        })
+        process_best_practice_results_kitchen_garden(data, sf_connection)
+    except Exception as e:
+        logger.error({
+            "message": "Error processing best practice results - kitchen garden",
+            "request_id": request_id,
+            "error": str(e)
+        })
+        return False, str(e)
+    
+    # Step 15: Update household with latest visit record
     try:
         logger.info({
             "message": "Updating household data - FV",
@@ -257,7 +273,7 @@ async def send_to_salesforce(data: dict, sf_connection):
     
     '''
     
-    # Step 14: Process farm data - FIS Zimbabwe
+    # Step 16: Process farm data - FIS Zimbabwe
     try:
         logger.info({
             "message": "Processing plot data - FIS",
@@ -272,7 +288,7 @@ async def send_to_salesforce(data: dict, sf_connection):
         })
         return False, str(e)
     
-    # Step 15: Process coffee variety data - FIS Zimbabwe
+    # Step 17: Process coffee variety data - FIS Zimbabwe
     try:
         logger.info({
             "message": "Processing coffee variety data - FIS",
@@ -287,7 +303,7 @@ async def send_to_salesforce(data: dict, sf_connection):
         })
         return False, str(e)
     
-    # Step 16: Update household - FIS Zimbabwe
+    # Step 18: Update household - FIS Zimbabwe
     try:
         logger.info({
             "message": "Updating household data - FIS",
@@ -302,7 +318,7 @@ async def send_to_salesforce(data: dict, sf_connection):
         })
         return False, str(e)
     
-    # Step 17: Upsert participant attendance check results - Farm Visit AA
+    # Step 19: Upsert participant attendance check results - Farm Visit AA
     try:
         logger.info({
             "message": "Upserting participant attendance check results - Farm Visit AA",

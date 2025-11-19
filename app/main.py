@@ -703,21 +703,14 @@ def status_count(collection):
     
     try:
         status_count_dict = {}
-
-        new_docs = db.collection(collection).where(filter=FieldFilter("status", "==", "new")).where(filter=FieldFilter("job_name", "in", migrated_form_types)).count()
-
-        completed_docs = db.collection(collection).where(filter=FieldFilter("status", "==", "completed")).where(filter=FieldFilter("job_name", "in", migrated_form_types)).count()
-
-        status_count_dict["completed"] = int(completed_docs.get()[0][0].value)
-        status_count_dict["new"] = int(new_docs.get()[0][0].value)
-
-        # Query for "processing" status
-        processing_docs = db.collection(collection).where(filter=FieldFilter("status", "==", "processing")).where(filter=FieldFilter("job_name", "in", migrated_form_types)).count()
-        status_count_dict["processing"] = int(processing_docs.get()[0][0].value)
-
-        # Query for "failed" status
-        failed_docs = db.collection(collection).where(filter=FieldFilter("status", "==", "failed")).where(filter=FieldFilter("job_name", "in", migrated_form_types)).count()
-        status_count_dict["failed"] = int(failed_docs.get()[0][0].value)
+        statuses = ["new", "processing", "failed", "completed"]
+        for status in statuses:
+            count = (
+                db.collection(collection)
+                .where(filter=FieldFilter("status", "==", status))
+                .get()
+            )
+            status_count_dict[status] = len(count)
 
         return jsonify({"status_counts": status_count_dict}), 200
 

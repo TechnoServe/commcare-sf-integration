@@ -290,9 +290,9 @@ def process_participant(data: dict, sf_connection):
 # Cases where the participant is being replaced   
 def process_participant_deactivation(data: dict, sf_connection):
     request_id = data.get("id")
-    cond_both_filled = data.get("form", {}).get("existing_household.both_filled", {}).get("replaced_member_full", "")
-    cond_primary_filled = data.get("form", {}).get("existing_household.primary_spot_filled", {}).get("primary_replace_adding", "")
-    cond_secondary_filled = data.get("form", {}).get("existing_household.secondary_spot_filled", {}).get("secondary_replace_adding", "")
+    cond_both_filled = data.get("form", {}).get("existing_household", {}).get("both_filled", {}).get("replaced_member_full", "")
+    cond_primary_filled = data.get("form", {}).get("existing_household", {}).get("primary_spot_filled", {}).get("primary_replace_adding", "")
+    cond_secondary_filled = data.get("form", {}).get("existing_household", {}).get("secondary_spot_filled", {}).get("secondary_replace_adding", "")
     
     try:
         if cond_both_filled == "1" or cond_primary_filled == "2":

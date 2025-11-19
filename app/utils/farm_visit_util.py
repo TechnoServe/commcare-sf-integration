@@ -142,7 +142,7 @@ PART 2: Processing the Farm Visit Best Practices Object
 
 def process_best_practices(data: dict, sf_connection):
     farm_visit_type = data.get('form', {}).get('survey_type')
-    bp_string = data.get('form', {}) if (
+    bp_string: dict = data.get('form', {}) if (
         farm_visit_type == 'Farm Visit Full - ZM' and 
         data.get('metadata', {}).get('app_build_version', 0) in [97, 267, 463, 233]
         ) else data.get('form', {}).get('best_practice_questions', {})
@@ -322,7 +322,14 @@ def process_best_practices(data: dict, sf_connection):
             'did_you_start_beekeeping_before_feb_2023__c': data.get('form', {}).get('question1', {}).get('ask_did_you_start_beekeeping_before_february_2023', "") or "",
             
             # 3. Erosion Control
-            'take_a_photo_of_erosion_control__c' : f"{url_string}{bp_string.get('erosion_control', {}).get('photo_of_erosion_control_method')}" if bp_string.get('erosion_control', {}).get('photo_of_erosion_control_method', None) != None else ""
+            'take_a_photo_of_erosion_control__c' : f"{url_string}{bp_string.get('erosion_control', {}).get('photo_of_erosion_control_method')}" if bp_string.get('erosion_control', {}).get('photo_of_erosion_control_method', None) != None else "",
+
+            # 4. Kitchen Garden
+            'is_there_a_kitchen_garden__c': {
+                "1": "Yes",
+                "0": "No"    
+            }.get(bp_string.get("kitchen_garden", {}).get("is_there_a_kitchen_garden", ""), "N/A"),
+            'photograph_of_kitchen_garden__c': f"{url_string}{bp_string.get("kitchen_garden", {}).get("photograph", "")}" if bp_string.get("kitchen_garden", {}).get("is_there_a_kitchen_garden", "") == "1" else None
         })
     # Upsert to Salesforce
     upsert_to_salesforce(
@@ -829,6 +836,40 @@ def process_best_practice_results_compost_and_manure(data: dict, sf_connection):
     else: 
         logger.info({
             "message": "Skipping 'Compost & Manure' FV BP Result upsert logic",
+            "request_id": request_id
+        })
+
+def process_best_practice_results_kitchen_garden(data: dict, sf_connection):
+    request_id = data.get("id")
+    results = str(data.get("form", {}).get("best_practice_questions", {}).get('kitchen_garden', {}).get('vegetables_planted', '')).split(" ")
+    other = data.get("form", {}).get("best_practice_questions", {}).get('kitchen_garden', {}).get("other_vegetables_planted", "")
+    if results:
+        for result in results:
+            best_practice_result_fields = {
+                'FV_Submission_ID__c': f'FV-{data.get("id")}',
+                'FV_Best_Practices__r': {
+                    "FV_Submission_ID__c": f'FV-{data.get("id")}'
+                },
+                'Best_Practice_Result_Type__c': 'Kitchen Garden',
+                'Best_Practice_Result_Description__c' : {
+                    '1' : 'Carrots',
+                    '2' : 'Beetroot',
+                    '3' : 'Swiss chard', 
+                    '4' : 'Kale',
+                    '99': other
+                }.get(result, '')
+            }
+            # Upsert to Salesforce
+            upsert_to_salesforce(
+                "FV_Best_Practice_Results__c",
+                "Best_Practice_Result_Submission_ID__c",
+                f'FVBPN-{data.get("id")}_kitchen_garden_{result}',
+                best_practice_result_fields,
+                sf_connection
+            )
+    else: 
+        logger.info({
+            "message": "Skipping 'Kitchen Garden' FV BP Result upsert logic",
             "request_id": request_id
         })
         

@@ -1,8 +1,5 @@
 from google.cloud import firestore
 from utils.logging_config import logger
-from datetime import datetime
-import functools
-import asyncio
 
 def get_firestore_client():
     return firestore.Client()
@@ -50,13 +47,3 @@ def update_firestore_status(doc_id, status, collection, fields=None, db=None):
             "error": str(e)
         })
         return False
-
-# async def save_to_firestore(data, job_name, status, collection, db=None):
-#     """Run Firestore save operation asynchronously using a thread pool."""
-#     loop = asyncio.get_running_loop()
-#     return await loop.run_in_executor(None, functools.partial(save_to_firestore_sync, data, job_name, status, collection, db))
-
-# async def update_firestore_status(doc_id, status, collection, fields=None, db=None):
-#     """Run Firestore update operation asynchronously using a thread pool."""
-#     loop = asyncio.get_running_loop()
-#     return await loop.run_in_executor(None, functools.partial(update_firestore_status_sync, doc_id, status, collection, fields, db))

@@ -742,7 +742,6 @@ def transformation_routine_visit(survey_data, url_string, form):
     
     return transformed
         
-        
 # Transformation for Cherry Weekly Price
 def transform_cherry_weekly_price(survey_data, url_string, form):
     transformed = {}

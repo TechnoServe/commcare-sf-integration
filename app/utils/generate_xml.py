@@ -47,7 +47,7 @@ def generate_xml(job_name, job_id, data, project_unique_id):
 
         
         # Determine Farm Size/Number of Coffee trees based on project
-        farm_size = str(int(data.get("householdFarmSize", "0"))) if project_unique_id in ["coffee_ke_2024ac", "coffee_ke_2024bc", "coffee_zw_2024c", "coffee_zw_c21_ag", "coffee_zim", "coffee_zim_c2_ag"] else data.get("householdFarmSize", "0")
+        farm_size = str(safe_int(data.get("householdFarmSize", "0"))) if project_unique_id in ["coffee_ke_2024ac", "coffee_ke_2024bc", "coffee_zw_2024c", "coffee_zw_c21_ag", "coffee_zim", "coffee_zim_c2_ag"] else data.get("householdFarmSize", "0")
         
         return f'''<?xml version="1.0" ?>
             <data xmlns:jrm="http://dev.commcarehq.org/jr/xforms" xmlns="http://openrosa.org/formdesigner/3E266629-AFD8-4A1C-8825-1DCDDF24E5A8" uiVersion="1" version="325" name="New Participant">
@@ -65,6 +65,7 @@ def generate_xml(job_name, job_id, data, project_unique_id):
                 <National_ID_Number>{safe_escape(national_id_number)}</National_ID_Number>
                 <Household_Id>{safe_escape(data.get("householdId", ""))}</Household_Id>
                 <Household_PIMA_Id>{safe_escape(data.get("householdPIMAId", ""))}</Household_PIMA_Id>
+                <Shade_Trees>{safe_int(data.get("shadeTrees", ""))}</Shade_Trees>
                 <Household_Number>{safe_int(data.get("HHID", "")) if data.get("HHID", "") else ""}</Household_Number>
                 <Number_of_Trees>{farm_size}</Number_of_Trees>
                 <Parent_Id>{safe_escape(data.get("trainingGroupId", ""))}</Parent_Id>
@@ -93,6 +94,7 @@ def generate_xml(job_name, job_id, data, project_unique_id):
                         <n0:National_ID_Number>{safe_escape(national_id_number)}</n0:National_ID_Number>
                         <n0:Household_Id>{safe_escape(data.get("householdId", ""))}</n0:Household_Id>
                         <n0:Household_PIMA_Id>{safe_escape(data.get("householdPIMAId", ""))}</n0:Household_PIMA_Id>
+                        <n0:Shade_Trees>{safe_int(data.get("shadeTrees", ""))}</n0:Shade_Trees>
                         <n0:Household_Number>{safe_int(data.get("HHID", ""))}</n0:Household_Number>
                         <n0:Number_of_Trees>{farm_size}</n0:Number_of_Trees>
                         <n0:Status>{safe_escape(data.get("status", ""))}</n0:Status>
