@@ -255,7 +255,8 @@ WASTE_WATER_MANAGEMENT_METHODS = {
 WATER_MANAGEMENT_PULP_SEPARATION = {
     "1": "Pulp hopper", 
     "2": "Re-circulation pump with skin tower", 
-    "eco-pulper": "Eco-pulper"
+    "eco-pulper": "Eco-pulper",
+    "4": "Large metal sifter or separator"
 }
 
 WATER_USE_METHODS = {

@@ -630,6 +630,7 @@ def bulk_update(collection):
     data = request.get_json()
     ids_list = data.get('ids', [])
     status = data.get('status', "new")
+    
 
     try:
         batch_size = 200
@@ -648,7 +649,8 @@ def bulk_update(collection):
                     doc_ref = db.collection(collection).document(doc.id)
                     update_data = {
                         "status": status,
-                        "updated_at": str(datetime.now(timezone.utc))
+                        "updated_at": str(datetime.now(timezone.utc)),
+                        "run_retries": 0
                     }
                     batch.update(doc_ref, update_data)
             batch.commit()

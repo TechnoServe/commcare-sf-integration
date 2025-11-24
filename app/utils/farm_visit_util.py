@@ -118,13 +118,25 @@ def process_farm_visit(data: dict, sf_connection):
         
     # 3. Zimbabwe
     elif farm_visit_type == 'Farm Visit Full - ZM':
+        other = data.get("form", {}).get("number_of_trees_confirmation", {}).get("ask_please_specify_what_happened_to_most_of_the_trees", "")
         farm_visit_fields.update({
             "Deforested_Farm__c": True if data.get("form", {}).get("planted_on_land_that_have_previously_been_planted_with_woodland_or_forest", "") in ["1", "2"] else False,
             "Deforested_Previously_planted_trees__c": {
                 "1": "Natural woodland or forest",
                 "2": "Eucalyptus or other tree plantation",
                 "0": "No sign the field(s) was previously woodland or forest."
-            }.get(data.get("form", {}).get("planted_on_land_that_have_previously_been_planted_with_woodland_or_forest", ""), "")
+            }.get(data.get("form", {}).get("planted_on_land_that_have_previously_been_planted_with_woodland_or_forest", ""), ""),
+            "Still_original_trees__c": {
+                "1": "Yes",
+                "2": "No"
+            }.get(data.get("form", {}).get("number_of_trees_confirmation", {}).get("still_original_trees", "")),
+            "What_happened_to_most_of_the_trees__c": {
+                "1": "Died due to lack of irrigation",
+                "2": "Died due to frost",
+                "3": "Died due to fire",
+                "99": f'Other: {other}'
+            }.get(data.get("form", {}).get("number_of_trees_confirmation", {}).get("ask_what_happened_to_most_of_the_trees", "")),
+            "Updated_number_of_trees": data.get("form", {}).get("number_of_trees_confirmation", {}).get("updated_number_of_trees", "")
         })
     
     # Upsert to Salesforce
@@ -328,7 +340,7 @@ def process_best_practices(data: dict, sf_connection):
             'is_there_a_kitchen_garden__c': {
                 "1": "Yes. There is a kitchen garden on the farm",
                 "0": "No kitchen garden planted"    
-            }.get(bp_string.get("kitchen_garden", {}).get("is_there_a_kitchen_garden", ""), "N/A"),
+            }.get(bp_string.get("kitchen_garden", {}).get("is_there_a_kitchen_garden", ""), ""),
             'photograph_of_kitchen_garden__c': f"{url_string}{bp_string.get("kitchen_garden", {}).get("photograph", "")}" if bp_string.get("kitchen_garden", {}).get("is_there_a_kitchen_garden", "") == "1" else None
         })
     # Upsert to Salesforce
@@ -904,3 +916,34 @@ def update_household_fvaa(data: dict, sf_connection):
             "message": "Skipping 'Household Update - FV - AA' logic",
             "request_id": request_id
         })
+        
+'''
+
+PART 5: Update the household object with number of trees for Zimbabwe
+
+'''
+# Not necessary. We will pull Farm visit data and periodically manually update offline. If this is done automatically, we may lose audit trails.
+
+# def update_household_zim(data: dict, sf_connection):
+#     survey_type = data.get("form", {}).get("survey_type", "") == "Farm Visit Full - ZM"
+#     number_of_trees_confirmation = data.get("form", {}).get("number_of_trees_confirmation", {})
+#     request_id = data.get("id")
+#     household_fields = {
+#         "Farm_Size__c": number_of_trees_confirmation.get("updated_number_of_trees", "")
+#     }
+    
+#     if survey_type and number_of_trees_confirmation: 
+#         # Upsert to Salesforce
+#         upsert_to_salesforce(
+#             "Household__c",
+#             "Id",
+#             data.get("form", {}).get("household_pima_id", ""),
+#             household_fields,
+#             sf_connection
+#         )
+#     else: 
+#         logger.info({
+#             "message": "Skipping 'Household Update - Farm Visit Zimbabwe' logic",
+#             "request_id": request_id
+#         })
+        
