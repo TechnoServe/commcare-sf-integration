@@ -118,7 +118,7 @@ def process_farm_visit(data: dict, sf_connection):
         
     # 3. Zimbabwe
     elif farm_visit_type == 'Farm Visit Full - ZM':
-        other = data.get("form", {}).get("number_of_trees_confirmation", {}).get("ask_please_specify_what_happened_to_most_of_the_trees", "")
+        other = data.get("form", {}).get("number_of_trees_confirmation", {}).get("ask_what_happened_to_most_of_the_trees_other", "")
         farm_visit_fields.update({
             "Deforested_Farm__c": True if data.get("form", {}).get("planted_on_land_that_have_previously_been_planted_with_woodland_or_forest", "") in ["1", "2"] else False,
             "Deforested_Previously_planted_trees__c": {
