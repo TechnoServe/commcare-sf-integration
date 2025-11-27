@@ -129,14 +129,14 @@ def process_farm_visit(data: dict, sf_connection):
             "Still_original_trees__c": {
                 "1": "Yes",
                 "2": "No"
-            }.get(data.get("form", {}).get("number_of_trees_confirmation", {}).get("still_original_trees", "")),
+            }.get(data.get("form", {}).get("number_of_trees_confirmation", {}).get("still_original_trees", ""), ""),
             "What_happened_to_most_of_the_trees__c": {
                 "1": "Died due to lack of irrigation",
                 "2": "Died due to frost",
                 "3": "Died due to fire",
                 "99": f'Other: {other}'
-            }.get(data.get("form", {}).get("number_of_trees_confirmation", {}).get("ask_what_happened_to_most_of_the_trees", "")),
-            "Updated_number_of_trees": data.get("form", {}).get("number_of_trees_confirmation", {}).get("updated_number_of_trees", "")
+            }.get(data.get("form", {}).get("number_of_trees_confirmation", {}).get("ask_what_happened_to_most_of_the_trees", ""), ""),
+            "Updated_number_of_trees__c": data.get("form", {}).get("number_of_trees_confirmation", {}).get("updated_number_of_trees", "")
         })
     
     # Upsert to Salesforce
