@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 import asyncio
 from google.cloud import firestore
 from google.cloud.firestore import FieldFilter
+from google.api_core.retry import Retry
 from jobs.commcare_to_salesforce import registration, attendance, training_observation, demoplot_observation, farm_visit
 from jobs.commcare_to_postrgresql import wetmill_registration, wetmill_visit
 from utils.firestore_client import save_to_firestore, update_firestore_status
@@ -706,13 +707,15 @@ def status_count(collection):
     try:
         status_count_dict = {}
         statuses = ["new", "processing", "failed", "completed"]
+
         for status in statuses:
-            count = (
+            query = (
                 db.collection(collection)
                 .where(filter=FieldFilter("status", "==", status))
-                .get()
             )
-            status_count_dict[status] = len(count)
+
+            result = query.count().get(retry=Retry(deadline=120))
+            status_count_dict[status] = result[0][0].value
 
         return jsonify({"status_counts": status_count_dict}), 200
 

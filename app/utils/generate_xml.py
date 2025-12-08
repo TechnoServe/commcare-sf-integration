@@ -66,7 +66,7 @@ def generate_xml(job_name, job_id, data, project_unique_id):
                 <Household_Id>{safe_escape(data.get("householdId", ""))}</Household_Id>
                 <Household_PIMA_Id>{safe_escape(data.get("householdPIMAId", ""))}</Household_PIMA_Id>
                 <Shade_Trees>{safe_int(data.get("shadeTrees", ""))}</Shade_Trees>
-                <Household_Number>{safe_int(data.get("HHID", "")) if data.get("HHID", "") else ""}</Household_Number>
+                <Household_Number>{data.get("HHID", "") if data.get("HHID", "") else ""}</Household_Number>
                 <Number_of_Trees>{farm_size}</Number_of_Trees>
                 <Parent_Id>{safe_escape(data.get("trainingGroupId", ""))}</Parent_Id>
                 <Status>{safe_escape(data.get("status", ""))}</Status>
@@ -95,7 +95,7 @@ def generate_xml(job_name, job_id, data, project_unique_id):
                         <n0:Household_Id>{safe_escape(data.get("householdId", ""))}</n0:Household_Id>
                         <n0:Household_PIMA_Id>{safe_escape(data.get("householdPIMAId", ""))}</n0:Household_PIMA_Id>
                         <n0:Shade_Trees>{safe_int(data.get("shadeTrees", ""))}</n0:Shade_Trees>
-                        <n0:Household_Number>{safe_int(data.get("HHID", ""))}</n0:Household_Number>
+                        <n0:Household_Number>{data.get("HHID", "") if data.get("HHID", "") else ""}</n0:Household_Number>
                         <n0:Number_of_Trees>{farm_size}</n0:Number_of_Trees>
                         <n0:Status>{safe_escape(data.get("status", ""))}</n0:Status>
                         <n0:Primary_Household_Member>{safe_escape(data.get("participantPrimaryHouseholdMember", ""))}</n0:Primary_Household_Member>
