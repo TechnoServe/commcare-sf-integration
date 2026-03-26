@@ -322,7 +322,7 @@ def generate_xml(job_name, job_id, data, project_unique_id):
             </data>
             '''
             
-    elif job_name == 'wemills':
+    elif job_name == 'Wetmill':
         first_time_stamp = datetime.now()
 
         case_id = safe_escape(data.get("commCareCaseId", ""))
