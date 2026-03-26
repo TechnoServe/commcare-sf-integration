@@ -232,6 +232,8 @@ def generate_xml(job_name, job_id, data, project_unique_id):
                 <Measurement_Group>{safe_escape(data.get("measurementGroup", ""))}</Measurement_Group>
                 <Cooperative_ID>{safe_escape(data.get("cooperative", ""))}</Cooperative_ID>
                 <Household_Counter>{safe_int(data.get("householdCounter", ""))}</Household_Counter>
+                <Focal_Farmer_Case_Id>{safe_escape(data.get("focalFarmerId", ""))}</Focal_Farmer_Case_Id>
+                <Assistant_Focal_Farmer_Case_Id>{safe_escape(data.get("assistantFocalFarmerId", ""))}</Assistant_Focal_Farmer_Case_Id>
                 <Name_Id_Concat>{safe_escape(data.get("trainingGroupName", ""))} {safe_escape(data.get("tnsId", ""))}</Name_Id_Concat>
                 <Parent_Id>{safe_escape(data.get("staffId", ""))}</Parent_Id>
                 <n0:case xmlns:n0="http://commcarehq.org/case/transaction/v2" case_id="{safe_escape(data.get("commCareCaseId", ""))}" date_modified="{safe_escape(datetime.now())}" user_id="e926526fc13b126fffdb6d001f25b269">
@@ -247,6 +249,8 @@ def generate_xml(job_name, job_id, data, project_unique_id):
                         <n0:Name_Id_Concat>{safe_escape(data.get("trainingGroupName", ""))} {safe_escape(data.get("tnsId", ""))}</n0:Name_Id_Concat>
                         <n0:Parent_Id>{safe_escape(data.get("staffId", ""))}</n0:Parent_Id>
                         <n0:FFG_Number>{safe_escape(data.get("tnsId", ""))}</n0:FFG_Number>
+                        <n0:Focal_Farmer_Case_Id>{safe_escape(data.get("focalFarmerId", ""))}</n0:Focal_Farmer_Case_Id>
+                        <n0:Assistant_Focal_Farmer_Case_Id>{safe_escape(data.get("assistantFocalFarmerId", ""))}</n0:Assistant_Focal_Farmer_Case_Id>
                         <n0:Measurement_Group>{safe_escape(data.get("measurementGroup", ""))}</n0:Measurement_Group>
                         <n0:Cooperative_ID>{data.get("cooperative", "")}</n0:Cooperative_ID>
                     </n0:update>
@@ -317,3 +321,60 @@ def generate_xml(job_name, job_id, data, project_unique_id):
                 </n1:meta>
             </data>
             '''
+            
+    elif job_name == 'wemills':
+        first_time_stamp = datetime.now()
+
+        case_id = safe_escape(data.get("commCareCaseId", ""))
+        owner_id = safe_escape(data.get("ccMobileWorkerGroupId", ""))
+        case_name = safe_escape(data.get("wetmillName", ""))
+
+        return f'''<?xml version="1.0" ?>
+            <data xmlns="http://openrosa.org/formdesigner/WETMILL-REGISTRATION" xmlns:jrm="http://dev.commcarehq.org/jr/xforms" name="Wetmill Registration" uiVersion="1" version="1">
+                <manager_name>{safe_escape(data.get("managerName", ""))}</manager_name>
+                <country>{safe_escape(data.get("country", ""))}</country>
+                <programme>{safe_escape(data.get("programme", ""))}</programme>
+                <registration_date>{safe_escape(data.get("registrationDate", ""))}</registration_date>
+                <TNS_Id>{safe_escape(data.get("tnsId", ""))}</TNS_Id>
+                <manager_role>{safe_int(data.get("managerRole", ""))}</manager_role>
+                <comments>{safe_escape(data.get("comments", ""))}</comments>
+                <date_ba_signature>{safe_escape(data.get("dateBASignature", ""))}</date_ba_signature>
+                <mill_status>{safe_int(data.get("millStatus", ""))}</mill_status>
+                <exporting_status>{safe_int(data.get("exportingStatus", ""))}</exporting_status>
+
+                <Case_Id>{case_id}</Case_Id>
+
+                <n0:case xmlns:n0="http://commcarehq.org/case/transaction/v2" case_id="{case_id}" date_modified="{safe_escape(datetime.now())}" user_id="e926526fc13b126fffdb6d001f25b269">
+                    <n0:create>
+                        <n0:case_name>{case_name}</n0:case_name>
+                        <n0:owner_id>{owner_id}</n0:owner_id>
+                        <n0:case_type>{safe_escape(project_unique_id)}_wetmill1</n0:case_type>
+                    </n0:create>
+                    <n0:update>
+                        <n0:Case_Id>{case_id}</n0:Case_Id>
+                        <n0:manager_name>{safe_escape(data.get("managerName", ""))}</n0:manager_name>
+                        <n0:country>{safe_escape(data.get("country", ""))}</n0:country>
+                        <n0:programme>{safe_escape(data.get("programme", ""))}</n0:programme>
+                        <n0:registration_date>{safe_escape(data.get("registrationDate", ""))}</n0:registration_date>
+                        <n0:TNS_Id>{safe_escape(data.get("tnsId", ""))}</n0:TNS_Id>
+                        <n0:manager_role>{safe_int(data.get("managerRole", ""))}</n0:manager_role>
+                        <n0:comments>{safe_escape(data.get("comments", ""))}</n0:comments>
+                        <n0:date_ba_signature>{safe_escape(data.get("dateBASignature", ""))}</n0:date_ba_signature>
+                        <n0:mill_status>{safe_int(data.get("millStatus", ""))}</n0:mill_status>
+                        <n0:exporting_status>{safe_int(data.get("exportingStatus", ""))}</n0:exporting_status>
+                    </n0:update>
+                </n0:case>
+
+                <n1:meta xmlns:n1="http://openrosa.org/jr/xforms">
+                    <n1:deviceID>ID-10_t</n1:deviceID>
+                    <n1:timeStart>{safe_escape(first_time_stamp)}</n1:timeStart>
+                    <n1:timeEnd>{safe_escape(datetime.now())}</n1:timeEnd>
+                    <n1:username>api</n1:username>
+                    <n1:userID>e926526fc13b126fffdb6d001f25b269</n1:userID>
+                    <n1:jobID>{job_id}</n1:jobID>
+                </n1:meta>
+            </data>
+            '''
+            
+        
+
